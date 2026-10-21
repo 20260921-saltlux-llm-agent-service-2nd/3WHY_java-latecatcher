@@ -1,0 +1,79 @@
+# ===== Java =====
+*.class
+*.log
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# ===== Gradle =====
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+.kotlin
+
+# ===== IntelliJ IDEA =====
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ===== Eclipse =====
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# ===== NetBeans =====
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# ===== VS Code =====
+.vscode/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+
+# ===== 프로젝트 =====
+# DB 접속 정보 (견본 db.properties.example만 커밋)
+db.properties
+# 개인 출결 CSV (견본 sample.csv만 커밋)
+data/*.csv
+!data/sample.csv
+
+# ===== Claude Code =====
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.mcp.json
+
+# oh-my-claudecode (OMC)
+.omc/
+.omc-workspace
+
+# superpowers 플러그인 산출물 (spec/plan 문서)
+docs/superpowers/
+
+# ===== OpenAI Codex =====
+.codex/
+AGENTS.md
+AGENTS.override.md
+
+# oh-my-codex (OMX)
+.omx/
