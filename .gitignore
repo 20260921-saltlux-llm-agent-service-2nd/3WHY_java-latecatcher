@@ -53,9 +53,9 @@ Thumbs.db
 # ===== 프로젝트 =====
 # DB 접속 정보 (견본 db.properties.example만 커밋)
 db.properties
-# 개인 출결 CSV (견본 sample.csv만 커밋)
-data/*.csv
-!data/sample.csv
+# 개인 출결 (고용24에서 복사한 표). 견본 sample.txt만 커밋
+data/*
+!data/sample.txt
 
 # ===== Claude Code =====
 .claude/

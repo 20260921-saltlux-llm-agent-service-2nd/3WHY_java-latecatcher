@@ -17,7 +17,7 @@
 
 - 우리는 매일 고용24 앱으로 QR 출결을 찍는다. 출석률에 **훈련장려금과 수료**가 걸려 있다.
 - 그런데 "지각 2번 + 결석 1번이면 이번 달 출석률이 몇 %지?"를 바로 알려 주는 화면은 없다. 규칙이 머릿속 암산이다.
-- 고용24는 개인 출결을 외부로 내보내는 API가 없다 (확인함). 그래서 **데이터는 손으로 넣거나 CSV로 가져오고, 규칙은 코드가 계산**한다.
+- 고용24는 개인 출결을 외부로 내보내는 API가 없다 (확인함). 그래서 **데이터는 손으로 넣거나 고용24 화면의 표를 복사해 가져오고, 규칙은 코드가 계산**한다. 고용24에는 출결 파일 내려받기도 없다 (8절).
 - 사용자는 우리 팀 3명에서 시작해 반 전체로 넓힐 수 있다. **만드는 동안 실제로 쓴다.**
 
 ### 사용 장면
@@ -73,7 +73,7 @@
 **스켈레톤** 컬럼은 대응하는 스켈레톤 기능과 활용 방식이다. 클래스 단위 변환은 [6절](#6-스켈레톤--지각-잡는-자바-변환표)을 본다.
 **담당**은 [11절](#11-팀-구성과-역할-분담-3명)의 A·B·C이다.
 
-### v0.1 — 핵심 (1. 규칙 + 2. CSV 적재)
+### v0.1 — 핵심 (1. 규칙 + 2. 출결 가져오기)
 
 | 번호 | 기능명 | 영문 이름(브랜치) | 입력 | 핵심 동작 | 스켈레톤 | 담당 |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -82,7 +82,7 @@
 | L-03 | 과정 설정 | `course-setting` | 과정명, 훈련 시작·종료일, 수업 시작·종료 시각, 규칙 수치 | `course_tbl`에 과정 1행을 저장하거나 수정한다. 규칙 수치는 3절의 설정 컬럼이다. | 신규 | C |
 | L-04 | 수업일 캘린더 | `class-calendar` | (생성) 없음 / (휴일 등록) 날짜, 메모 | 훈련 기간의 평일을 `class_day_tbl`에 생성한다. 공휴일·휴강일은 수동으로 수업일에서 뺀다. | 신규 | C |
 | L-05 | 출결 입력 (수동) | `attendance-checkin` | 날짜, 입실 시각, 퇴실 시각 | 수업일인지 확인하고, 과정의 시작·종료 시각으로 상태(출석/지각/조퇴)를 판정해 저장한다. 같은 날짜 중복 입력은 알려 준다. | F-04 변형: 구독 추가 → 출결 추가. 만료일 계산 → 상태 판정 | B |
-| L-06 | 출결 CSV 가져오기 | `csv-import` | CSV 파일 경로, 저장 확인(y/n) | 고용24 출결현황 CSV를 읽어 미리보기를 보여 주고, 확인을 받으면 한 트랜잭션으로 저장한다. **한 줄이라도 실패하면 전체 취소**한다. | 신규 | A |
+| L-06 | 출결 가져오기 | `attendance-import` | 붙여 넣은 텍스트 파일 경로, 저장 확인(y/n) | 고용24 출결 화면에서 복사해 저장한 표를 읽어 미리보기를 보여 주고, 확인을 받으면 한 트랜잭션으로 저장한다. **한 줄이라도 실패하면 전체 취소**한다. | 신규 | A |
 | L-07 | 결석 일괄 마감 | `absence-close` | 없음 | 지난 수업일 중 출결 기록이 없는 훈련생을 `ABSENT`로 한 트랜잭션에서 일괄 저장한다. | 신규 | B |
 | L-08 | 내 출결 리스크 | `my-risk` | 없음 (이번 달) | 로그인 훈련생의 월별 출석률과 환산 결석을 계산하고, 몇 번 더 늦으면 80% 아래로 떨어지는지 경고한다. 2절 사용 장면 화면이다. | F-03 변형: 현재 구독 조회 → 이번 달 출결 집계 | C |
 | L-09 | 반 전체 현황 | `class-status` | 조회 월 | 전체 훈련생의 월별 출석률 순위와 **80% 미달·경계(85% 이하) 명단**을 보여 준다. | 신규 | C |
@@ -124,12 +124,12 @@
 | --- | --- | --- |
 | 5층 구조 model / repository / view / controller / run | `chap99-Java-Application`, 스켈레톤 | 그대로 유지. 새 기능도 같은 층 구조로 |
 | enum | `chap14_enum` | `AttendanceStatus` — 한글 라벨, "환산 대상인가" 플래그를 enum 필드로 |
-| 인터페이스·다형성 | `chap09-polymorphism` | `AttendanceImporter` 인터페이스 — v0.1 `CsvImporter`, v0.2 `TelegramImporter`. 가져오는 곳이 달라도 저장 코드는 하나 |
+| 인터페이스·다형성 | `chap09-polymorphism` | `AttendanceImporter` 인터페이스 — v0.1 `Work24Importer`, v0.2 `TelegramImporter`. 가져오는 곳이 달라도 저장 코드는 하나 |
 | 상속·예외 | `chap07-inheritance` | `ImportException extends RuntimeException` — 몇 번째 줄이 왜 실패했는지 담는다 |
 | 컬렉션·제네릭 | `chap11-collections`, `chap10-Generics` | `Map<LocalDate, Attendance>` 로 날짜별 기록, `List<MonthlySummary>` |
-| 람다·스트림 | `chap15-lambda`, `chap16-stream` | CSV 줄 → `filter(빈 줄 제외)` → `map(파싱)` → `toList()`; 랭킹 `sorted(comparing(...))`; 경고 계산 |
+| 람다·스트림 | `chap15-lambda`, `chap16-stream` | 붙여 넣은 줄 → `dropWhile(헤더 전)` → `filter(빈 줄 제외)` → `map(파싱)` → `toList()`; 랭킹 `sorted(comparing(...))`; 경고 계산 |
 | java.time | `chap09-api` | `LocalDate`/`LocalTime`/`YearMonth`, 평일 생성 (`DayOfWeek`), 월 경계 계산 |
-| **파일 읽기** | **새로 배움** (`Properties.load(FileReader)`는 이미 씀) | `Files.readAllLines(Path)` 또는 `BufferedReader` 로 CSV 읽기. 작은 확장이지만 처음 |
+| **파일 읽기** | **새로 배움** (`Properties.load(FileReader)`는 이미 씀) | `Files.readAllLines(Path)` 또는 `BufferedReader` 로 붙여 넣은 텍스트 파일 읽기. 작은 확장이지만 처음 |
 | 스레드 | `chap17-thread` | v0.2 텔레그램 폴링 루프 (`ScheduledExecutorService`) |
 
 ### 5.2 MySQL (`02_Database/`)
@@ -143,7 +143,7 @@
 | 서브쿼리 / CTE | `01_DQL/09_SubQuery` | 월별 집계를 CTE로 만들고 바깥에서 출석률 계산 |
 | VIEW | `04_DDL/03_View` | `v_monthly_attendance` — 월별 집계를 뷰로 두고 Java는 뷰만 SELECT |
 | INDEX | `04_DDL/04_Index` | `attendance_tbl(attend_date)` 인덱스. 월별 조회 전후 `EXPLAIN` 비교해 보기 |
-| DML — INSERT/UPDATE/DELETE/**REPLACE** | `02_DML` | CSV **재가져오기**는 `REPLACE INTO` 로 같은 날짜 기록을 덮어쓴다 (UNIQUE 덕분에 가능) |
+| DML — INSERT/UPDATE/DELETE/**REPLACE** | `02_DML` | 출결 **재가져오기**는 `REPLACE INTO` 로 같은 날짜 기록을 덮어쓴다 (UNIQUE 덕분에 가능) |
 | **트랜잭션** | `03_Transaction` (SQL로만 배움) | **JDBC에서 처음 쓴다** — 아래 5.3 |
 
 ### 5.3 JDBC (`03_jdbc/`)
@@ -156,11 +156,11 @@
 | `ResultSet` → DTO 매핑 | 스켈레톤 `findByPhone` | `getObject(col, LocalDate.class)` / `LocalTime.class` — 스켈레톤의 `getTimestamp().toLocalDateTime()`에서 한 단계 확장 |
 | try-with-resources, `SQLException` → `IllegalStateException` | 스켈레톤 규칙 | 그대로 유지 |
 | `executeUpdate()` 반환값으로 성공 판정 | 스켈레톤 | 그대로 |
-| **트랜잭션 (`setAutoCommit(false)` / `commit` / `rollback`)** | **새로 배움** — SQL `START TRANSACTION`을 JDBC로 | ① CSV 가져오기: N행 INSERT + `import_log_tbl` 1행, 하나라도 실패하면 **전부 롤백** ② 결석 일괄 마감 ③ 비교용: 회원 탈퇴는 트랜잭션 없이 **FK CASCADE**가 처리 — 둘의 차이를 PR에 적는다 |
+| **트랜잭션 (`setAutoCommit(false)` / `commit` / `rollback`)** | **새로 배움** — SQL `START TRANSACTION`을 JDBC로 | ① 출결 가져오기: N행 INSERT + `import_log_tbl` 1행, 하나라도 실패하면 **전부 롤백** ② 결석 일괄 마감 ③ 비교용: 회원 탈퇴는 트랜잭션 없이 **FK CASCADE**가 처리 — 둘의 차이를 PR에 적는다 |
 | **`SQLIntegrityConstraintViolationException` 구분** | 새로 배움 | 같은 날 중복 입력 → UNIQUE 위반을 잡아 "이미 기록이 있습니다"로 안내 |
-| **`addBatch()` / `executeBatch()`** | 새로 배움 (선택) | CSV 100행 이상이면 배치 실행. 먼저 반복 `executeUpdate`로 만들고, 시간 비교 뒤 배치로 바꿔 보기 |
+| **`addBatch()` / `executeBatch()`** | 새로 배움 (선택) | 가져올 줄이 100행 이상이면 배치 실행. 먼저 반복 `executeUpdate`로 만들고, 시간 비교 뒤 배치로 바꿔 보기 |
 
-> 트랜잭션은 이 프로젝트에서 **가장 중요하게 실습하는 항목**이다. CSV 가져오기 PR에는 반드시 "중간 줄을 고의로 깨뜨려 롤백되는 것을 확인한" 기록을 넣는다.
+> 트랜잭션은 이 프로젝트에서 **가장 중요하게 실습하는 항목**이다. 출결 가져오기 PR에는 반드시 "중간 줄을 고의로 깨뜨려 롤백되는 것을 확인한" 기록을 넣는다.
 
 ---
 
@@ -179,7 +179,7 @@
 | `repository.MembershipRepository` | `repository.AttendanceRepository` | `addMembership` → `save`, `findAllMembershipsByMemberId` → `findByMemberAndMonth`, `extendMembership` → 삭제, + `saveAll(List, Connection)` (트랜잭션용), `findMissingOnDate` (LEFT JOIN) |
 | — | `repository.CourseRepository`, `repository.ClassDayRepository` | 설정·캘린더 |
 | — | `service` 계층? | **도입하지 않는다.** 규칙은 `rule.AttendanceRule` (순수 Java 클래스)에, 흐름은 Controller에. 아직 안 배운 계층을 만들지 않는다 |
-| — | `importer.AttendanceImporter` (interface), `importer.CsvImporter` | 파일 → `List<Attendance>` |
+| — | `importer.AttendanceImporter` (interface), `importer.Work24Importer` | 파일 → `List<Attendance>` |
 | `controller.MemberController` (로그인 상태 보관) | `controller.MemberController` + `controller.AttendanceController` | 로그인 흐름 유지. 출결 메뉴는 새 컨트롤러 |
 | `view.MemberView` | `view.MemberView` + `view.AttendanceView` | 리스크 화면 출력 |
 | `run.Application` (회원가입/로그인 → 구독 메뉴) | `run.Application` | 구독 메뉴 → 출결 메뉴로 교체 |
@@ -234,7 +234,7 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
     check_out     TIME,
     status        ENUM('PRESENT','LATE','EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,
     memo          VARCHAR(200),
-    source        ENUM('MANUAL','CSV','TELEGRAM') NOT NULL DEFAULT 'MANUAL',
+    source        ENUM('MANUAL','WORK24','TELEGRAM') NOT NULL DEFAULT 'MANUAL',
     CONSTRAINT pk_attendance_tbl PRIMARY KEY (attendance_id),
     CONSTRAINT fk_attendance_tbl_member_tbl FOREIGN KEY (member_id)
         REFERENCES member_tbl (member_id) ON DELETE CASCADE,
@@ -246,7 +246,7 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
 
 CREATE INDEX idx_attendance_tbl_date ON attendance_tbl (attend_date);
 
-CREATE TABLE import_log_tbl (                       -- CSV 가져오기 기록 (트랜잭션의 일부)
+CREATE TABLE import_log_tbl (                       -- 출결 가져오기 기록 (트랜잭션의 일부)
     import_id   INT AUTO_INCREMENT,
     file_name   VARCHAR(255) NOT NULL,
     row_count   INT NOT NULL,
@@ -284,35 +284,43 @@ WHERE a.attendance_id IS NULL;
 
 ---
 
-## 8. CSV 가져오기 — "파일 업로드"의 콘솔 버전
+## 8. 출결 가져오기 — "파일 업로드"의 콘솔 버전
 
 콘솔 앱에서 파일 업로드는 **경로를 입력받아 읽는 것**이다.
 
+**왜 복사·붙여넣기인가** — 고용24에는 출결을 CSV·엑셀로 내려받는 기능이 없다(찾지 못했고, 없을 가능성이 높다). 훈련기관 창구에 요청하는 것은 선택지가 아니다. 그래서 **훈련생 각자가 자기 화면의 표를 복사해 온다.**
+
+1. 고용24 로그인 → **마이페이지 → 훈련현황** → 우리 과정의 출결 화면을 연다.
+2. 요약부터 세부내역 표 끝까지 **마우스로 드래그해 복사**한다. 요약이 함께 복사돼도 된다.
+3. IntelliJ나 메모장에서 새 파일을 만들어 붙여 넣고 `data/` 아래에 **UTF-8 `.txt`** 로 저장한다 (예: `data/my-attendance.txt`).
+4. 프로그램에서 메뉴 `3`을 고르고 그 경로를 입력한다.
+
 ```text
-===== 출결 CSV 가져오기 =====
-파일 경로: data/2026-10-attendance.csv
-읽은 행: 48   파싱 실패: 0
+===== 출결 가져오기 =====
+파일 경로: data/my-attendance.txt
+세부내역 표 찾음: 15행 (오늘 1행 제외)   파싱 실패: 0
 가져올까요? (y/n): y
-→ 48행 저장, import_log #3 기록. (트랜잭션 커밋)
+→ 14행 저장, import_log #3 기록. (트랜잭션 커밋)
 ```
 
-**CSV 형식** — 고용24 출결현황의 **세부내역 표를 그대로** 스프레드시트에 붙여 넣고 CSV(UTF-8)로 저장한다. 열 이름과 값 모양을 고치지 않는다. 견본: [`data/sample.csv`](../data/sample.csv) (값은 지어낸 것)
+**복사한 텍스트의 모양** — 표의 칸은 **탭**으로 나뉘어 붙는다. 견본: [`data/sample.txt`](../data/sample.txt) (실제로 복사했을 때와 같은 모양, 이름과 값은 지어낸 것)
 
-```csv
-일자,입실시간,퇴실시간,수업시간,실수업시간,출결상태
-2026-09-29,09:12,18:40,08:00,480 분,출석
-2026-10-06,00:00,00:00,08:00,0 분,결석
-2026-10-27,13:02,18:35,08:00,300 분,지각
-2026-11-26,09:14,15:50,08:00,360 분,조퇴
-2026-12-30,09:19,18:24,08:00,420 분,외출
-2027-01-11,10:39,13:18,08:00,150 분,결석
+```text
+[솔트룩스]LLM 지능형 에이전트 서비스개발 부트캠프
+당일 출석결과는 익일 반영됩니다.
+…  (요약 표, 설명 문구)
+일자,입실시간,퇴실시간,수업시간,실수업시간,출결상태을(를) 제공하는 표
+일자	입실시간	퇴실시간	수업시간	실수업시간	출결상태
+2026-09-29	09:12	18:40	08:00	480 분	출석
+2026-10-06	00:00	00:00	08:00	0 분	결석
+2026-10-27	13:02	18:35	08:00	300 분	지각
 ```
 
-견본은 우리 과정의 **훈련기간 전체(2026-09-29 ~ 2027-03-24)를 다 마친 상태**를 가정한다. 평일에서 공휴일(10/5 개천절 대체, 10/9 한글날, 12/25, 1/1, 2/8~2/9 설 연휴·대체, 3/1)을 빼면 고용24의 **총 훈련일수 120일**과 같다. 규칙 테스트의 기대값으로 쓴다.
+**읽는 규칙**
 
-| 출석 | 결석 | 지각 | 조퇴 | 외출 | 환산 결석 | 출석일 | 출석률 (출석일 / 120) |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 109 | 4 (50% 미만 1 포함) | 3 | 2 | 2 | 4 + ⌊7 / 3⌋ = **6** | 120 − 6 = **114** | **95.0%** |
+- 위에서부터 읽다가 **탭으로 나눈 6칸이 정확히 `일자 입실시간 퇴실시간 수업시간 실수업시간 출결상태`인 줄**을 헤더로 본다. 그 위의 요약·설명은 버린다. 바로 위의 `…을(를) 제공하는 표` 줄은 쉼표로 이어진 설명이라 헤더가 아니다.
+- 헤더 아래에서 `yyyy-MM-dd`로 시작하는 줄만 데이터로 읽는다. 빈 줄은 건너뛰고, 날짜로 시작하지 않는 줄이 나오면 표가 끝난 것으로 본다.
+- 헤더를 찾지 못하면 "세부내역 표를 찾을 수 없습니다"를 보여 주고 중단한다. 세부내역까지 복사하지 않은 경우다.
 
 | 열 | 값 모양 | 읽는 방법 |
 | --- | --- | --- |
@@ -322,16 +330,21 @@ WHERE a.attendance_id IS NULL;
 | `실수업시간` | `480 분` | 숫자만 떼어 분으로 읽는다 |
 | `출결상태` | `출석` `지각` `조퇴` `외출` `결석` | `AttendanceStatus`로 바꾼다. 모르는 값이면 그 줄은 파싱 실패 |
 
-- 표에 **훈련생 이름·전화번호 열이 없다.** 고용24는 본인 출결만 보여 주므로, 가져온 모든 줄은 **로그인한 훈련생**의 것으로 저장한다.
-- 표 위의 요약(총 훈련일수, 출석률 등)과 설명 문구는 붙여 넣지 않는다. 헤더 한 줄 + 날짜 줄만 남긴다.
+- 표에 **훈련생 이름·전화번호 열이 없다.** 고용24는 본인 출결만 보여 주므로, 가져온 모든 줄은 **로그인한 훈련생**의 것으로 저장한다. 요약의 `훈련생명`은 저장에 쓰지 않는다.
 - **오늘 이후 줄은 가져오지 않는다.** "당일 출석결과는 익일 반영"이라 오늘은 입실 시각이 있어도 퇴실 `00:00`, 상태 `결석`으로 보인다. 가져오더라도 계산에서는 빠진다 ([3절 계산 기준일](#3-출결-규칙-코드의-심장)).
 - `조퇴`·`외출` 문구는 요약 표의 항목 이름으로 추정했다. 실제 줄에서 처음 보면 견본과 이 표를 고친다.
+
+**견본의 기대값** — 견본은 우리 과정의 **훈련기간 전체(2026-09-29 ~ 2027-03-24)를 다 마친 상태**를 가정한다. 평일에서 공휴일(10/5 개천절 대체, 10/9 한글날, 12/25, 1/1, 2/8~2/9 설 연휴·대체, 3/1)을 빼면 고용24의 **총 훈련일수 120일**과 같다. 규칙 테스트의 기대값으로 쓴다.
+
+| 출석 | 결석 | 지각 | 조퇴 | 외출 | 환산 결석 | 출석일 | 출석률 (출석일 / 120) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 109 | 4 (50% 미만 1 포함) | 3 | 2 | 2 | 4 + ⌊7 / 3⌋ = **6** | 120 − 6 = **114** | **95.0%** |
 
 ### 흐름과 책임
 
 ```text
-Application  ──경로──▶  AttendanceController.importCsv(path)
-                           │ 1. CsvImporter.read(path)  → List<Attendance>   (파일 읽기 + 스트림 파싱, 실패 줄은 ImportException)
+Application  ──경로──▶  AttendanceController.importFile(path)
+                           │ 1. Work24Importer.read(path)  → List<Attendance>   (파일 읽기 + 헤더 찾기 + 스트림 파싱, 실패 줄은 ImportException)
                            │ 2. 미리보기 출력, y/n 확인
                            │ 3. AttendanceRepository.saveAll(list, fileName, loginMemberId)
                            ▼        con.setAutoCommit(false)
@@ -340,7 +353,7 @@ Application  ──경로──▶  AttendanceController.importCsv(path)
                                     con.commit()        ← 하나라도 SQLException이면 con.rollback()
 ```
 
-- `data/` 폴더는 **gitignore** (개인 출결은 개인정보). `data/sample.csv`만 커밋.
+- `data/` 폴더는 **gitignore** (개인 출결은 개인정보). `data/sample.txt`만 커밋.
 - `출결상태`는 고용24가 판정한 값이므로 그대로 저장한다. `AttendanceRule`의 판정은 수동 입력(L-05)에만 쓴다.
 - 한 줄이라도 파싱이나 저장에 실패하면 가져오기 전체를 중단한다 — "일부만 들어간 상태"를 만들지 않는 것이 트랜잭션의 요점.
 
@@ -386,8 +399,8 @@ src/main
 java-latecatcher/
 ├─ build.gradle                         # mainClass → com.latecatcher.app.run.Application
 ├─ + data/
-│  ├─ sample.csv                        # 커밋
-│  └─ *.csv                             # gitignore (개인 출결)
+│  ├─ sample.txt                        # 커밋 (고용24 표를 복사한 모양의 견본)
+│  └─ *                                 # gitignore (개인 출결)
 ├─ docs/  PLAN.md, CONVENTION.md
 ├─ .github/  ISSUE_TEMPLATE/, PULL_REQUEST_TEMPLATE.md
 └─ src
@@ -424,7 +437,7 @@ java-latecatcher/
    │  │     │  └─ AttendanceRule.java
    │  │     └─ + importer                     # 추가 패키지
    │  │        ├─ AttendanceImporter.java
-   │  │        ├─ CsvImporter.java
+   │  │        ├─ Work24Importer.java
    │  │        └─ ImportException.java
    │  └─ resources
    │     ├─ db.properties                   # gitignore (이미 설정됨)
@@ -444,11 +457,11 @@ java-latecatcher/
 | 추가 | 위치 | 이유 |
 | --- | --- | --- |
 | `rule` 패키지 | `com.latecatcher.app.rule` | 출결 규칙(상태 판정, 출석률 계산)을 DB와 콘솔 없이 **순수 Java**로 두어 JUnit으로 테스트하기 위해. controller에 두면 테스트할 때 DB가 필요해진다 |
-| `importer` 패키지 | `com.latecatcher.app.importer` | CSV 파일 읽기·파싱은 DB 접근(repository)도 흐름 조정(controller)도 아니라서 따로 둔다 |
+| `importer` 패키지 | `com.latecatcher.app.importer` | 붙여 넣은 표 읽기·파싱은 DB 접근(repository)도 흐름 조정(controller)도 아니라서 따로 둔다 |
 | 모델·repository·controller·view·mapper 파일 | 기준 패키지 안 | 출결·과정·수업일 기능. 기준 패키지에 파일만 추가한다 |
 | `db.properties.example` | `resources` | `db.properties`는 gitignore라서, 팀원이 복사해 쓸 견본을 커밋한다 |
 | `db/schema.sql`, `db/insert.sql` | `resources/db` | 7절 스키마와 샘플 데이터 |
-| `data/` | 프로젝트 루트 | CSV 가져오기 입력 파일. `sample.csv`만 커밋 |
+| `data/` | 프로젝트 루트 | 출결 가져오기 입력 파일(고용24 표를 붙여 넣은 텍스트). `sample.txt`만 커밋 |
 | `src/test` | 프로젝트 루트 | `AttendanceRuleTest` (13절 성공 기준) |
 
 ### 규칙
@@ -480,7 +493,7 @@ java-latecatcher/
 ===== 이영희 — 출결 메뉴 =====
 1. 내 출결 리스크 보기 (이번 달)
 2. 출결 입력 (날짜/입실/퇴실)
-3. 출결 CSV 가져오기
+3. 출결 가져오기 (고용24 표 붙여 넣은 파일)
 4. 반 전체 현황 (월별 순위, 80% 미달자)
 5. 결석 일괄 마감 (지난 수업일)
 6. 과정 설정 / 수업일 캘린더
@@ -497,7 +510,7 @@ java-latecatcher/
 
 | 담당 | 기능 | 만드는 것 | 집중 실습 항목 |
 | --- | --- | --- | --- |
-| **A — 훈련생 + CSV** | 회원 CRUD 마무리, **CSV 가져오기** | `CsvImporter`, `ImportException`, `AttendanceRepository.saveAll`, `import_log_tbl` | 파일 읽기, 스트림 파싱, **JDBC 트랜잭션**, REPLACE, (선택) executeBatch |
+| **A — 훈련생 + 출결 가져오기** | 회원 CRUD 마무리, **출결 가져오기** | `Work24Importer`, `ImportException`, `AttendanceRepository.saveAll`, `import_log_tbl` | 파일 읽기, 스트림 파싱, **JDBC 트랜잭션**, REPLACE, (선택) executeBatch |
 | **B — 출결 + 규칙** | 출결 수동 입력, 상태 판정, **결석 일괄 마감**, 중복 입력 처리 | `Attendance`, `AttendanceStatus`, `AttendanceRule` + **JUnit 테스트**, `AttendanceRepository.save/findMissingOnDate` | enum, 순수 로직 + 단위 테스트, LEFT JOIN + IS NULL, UNIQUE 위반 예외 구분, 트랜잭션(마감) |
 | **C — 캘린더 + 통계 + 통합** | 과정 설정, 수업일 생성, **리스크 화면**, 반 전체 현황, `Application` 메뉴 통합, README | `Course`, `ClassDayRepository`, `MonthlySummary`, `v_monthly_attendance` 뷰, `AttendanceView`, `run.Application` | java.time 평일 생성, VIEW, GROUP BY/HAVING, SUM(CASE), INDEX + EXPLAIN |
 
@@ -516,12 +529,12 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 ### 흐름
 
 ```text
-0단계 (3 PR) ─┬─ A: CSV 가져오기 ───────┐
+0단계 (3 PR) ─┬─ A: 출결 가져오기 ──────┐
               ├─ B: 출결 입력·판정·마감 ─┼─ C: 메뉴 통합 ─ [v0.1] ─ v0.2 (공휴일 API, 텔레그램: 이슈로 나눠 각자) ─ [v0.2]
               └─ C: 캘린더·통계 ─────────┘
 ```
 
-- 기능 1개 = 이슈 1개 = 브랜치 1개 = PR 1개. 크면 쪼갠다 (A: "CSV 읽기·미리보기" / "트랜잭션 저장" 2개로).
+- 기능 1개 = 이슈 1개 = 브랜치 1개 = PR 1개. 크면 쪼갠다 (A: "파일 읽기·미리보기" / "트랜잭션 저장" 2개로).
 - 매일 10분 모여 열린 PR을 함께 보고 approve. 3명이라 approve 2 = **나머지 둘이 모두 봐야 머지**.
 
 ---
@@ -551,19 +564,19 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 ## 13. 성공 기준
 
 - [ ] 팀원 3명이 로그인해서 **자기 10월 출석률과 경고**를 본다 — 수치가 수동 계산과 일치
-- [ ] CSV 가져오기 중간 줄을 고의로 깨뜨리면 **한 줄도 저장되지 않는다** (롤백 확인 기록이 PR에 있음)
+- [ ] 출결 가져오기 파일의 중간 줄을 고의로 깨뜨리면 **한 줄도 저장되지 않는다** (롤백 확인 기록이 PR에 있음)
 - [ ] 같은 날 중복 입력 시 "이미 기록이 있습니다" 안내 (예외 스택트레이스 아님)
 - [ ] 반 전체 현황에서 80% 미달자가 HAVING으로 걸러져 나온다
 - [ ] `AttendanceRuleTest` 가 통과한다 (경계값: 지각 2회/3회, 79.9%/80.0%, 공결 처리, **퇴실 기록 없는 오늘 줄은 계산에서 빠짐**)
 - [ ] 팀원 각자 PR 2개 이상, 모든 PR approve 2개, 커밋 메시지 규칙 준수, 태그 `v0.1`
-- [ ] README만 보고 다른 반 친구가 clone → `schema.sql` → `db.properties` → 실행 → 자기 CSV 가져오기까지 할 수 있다
+- [ ] README만 보고 다른 반 친구가 clone → `schema.sql` → `db.properties` → 실행 → 자기 고용24 표를 복사해 가져오기까지 할 수 있다
 
 ---
 
 ## 14. 열린 질문 (정해지면 이 문서를 고친다)
 
 1. **출결 규칙 확정** — 지각 환산(3회=1일?), 단위기간(월? 30일?), 장려금·수료 기준 %, 공결 처리. → 훈련기관 안내문 확인 후 3절 표와 `course_tbl` 기본값 수정
-2. ~~**고용24 출결현황 화면의 실제 열** — 첫 CSV를 받아 보고 8절 형식 확정~~ → **결정: 세부내역 표 6열 그대로** ([8절](#8-csv-가져오기--파일-업로드의-콘솔-버전), `data/sample.csv`)
+2. ~~**고용24 출결현황 화면의 실제 열** — 첫 데이터를 받아 보고 8절 형식 확정~~ → **결정: 세부내역 표 6열 그대로, 복사한 텍스트를 탭으로 읽는다** ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전), `data/sample.txt`)
 3. ~~Java 17 유지 vs 21로 통일~~ → **결정: 수업과 같은 Java 21** ([12절](#12-기술-선택))
 4. `Member.age` 유지 여부 (스켈레톤 그대로 두는 쪽을 제안)
 5. A/B/C 담당자
@@ -577,13 +590,13 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 [4절](#4-기능)의 기능과 노션 문서 작업을 함께 묶어 세 사람의 업무량이 비슷하도록 나눈다.
 시간은 현재 코드 상태와 이 문서를 보고 잡은 **추정치**다. 이슈를 만들 때 각자 예상 시간을 다시 적고, 합계가 크게 어긋나면 이 표를 고친다.
 
-### A — 훈련생 + CSV + 캘린더 (약 16.5h)
+### A — 훈련생 + 출결 가져오기 + 캘린더 (약 16.5h)
 
 | 작업 | 예상 시간 |
 | --- | --- |
 | 0단계 #1: 패키지 이름 `com.latecatcher.app`으로 변경 (`QUERY_FILE` 경로 포함), mainClass 수정, 빌드 설정 수업 버전으로 맞춤 (Java 21, Gradle 9.6.0), `MemberRepository` 문법 오류 수정, `db.properties.example` | 1.5h |
 | L-02 로그인 버그 수정, L-10 로그아웃, L-11 회원 탈퇴 마무리 | 1.5h |
-| L-06 출결 CSV 가져오기 | 6h |
+| L-06 출결 가져오기 | 6h |
 | L-04 수업일 캘린더 | 3h |
 | 노션 **요구사항 명세** 페이지 (기능 명세) | 2h |
 | 노션 모델링 페이지 — **properties 파일** | 1h |

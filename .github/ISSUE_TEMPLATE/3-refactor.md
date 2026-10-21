@@ -7,10 +7,10 @@ assignees: ""
 ---
 
 <!--
-제목: [기능번호] 무엇을 어떻게 바꾸는지 한 줄 — 예) [L-06] CsvImporter 파싱을 스트림으로 정리
+제목: [기능번호] 무엇을 어떻게 바꾸는지 한 줄 — 예) [L-06] Work24Importer 파싱을 스트림으로 정리
   - 여러 기능에 걸친 리팩터링은 [환경]을 씁니다. 예) [환경] repository를 try-with-resources로 통일
 라벨: 파트 라벨을 1개 이상 추가해 주세요.
-브랜치: refactor/이슈번호-기능번호-영문이름 — 예) refactor/40-L06-csv-stream-parse
+브랜치: refactor/이슈번호-기능번호-영문이름 — 예) refactor/40-L06-import-stream-parse
 -->
 
 ## 🔨 Describe

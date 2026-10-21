@@ -143,8 +143,8 @@ Refs #31
 
 ```text
 feat/24-L05-attendance-checkin        # 기능
-feat/25-L06-csv-read-preview          # 한 기능을 쪼갠 첫 번째 이슈
-feat/26-L06-csv-transaction-save      # 같은 기능의 두 번째 이슈
+feat/25-L06-import-read-preview          # 한 기능을 쪼갠 첫 번째 이슈
+feat/26-L06-import-transaction-save      # 같은 기능의 두 번째 이슈
 fix/31-L02-login-return               # 머지 뒤 발견한 버그
 test/33-L05-late-boundary-test        # 테스트만 추가
 chore/30-package-rename               # [환경] — 기능 번호 없음
@@ -261,7 +261,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 | `sql` | `resources/db/*.sql`, `mapper/*.xml` | `schema.sql`, `attendance-query.xml` |
 | `model` | `model/` | `Attendance`, `AttendanceStatus` |
 | `rule` | `rule/`, `src/test/…/rule/` | `AttendanceRule`, `AttendanceRuleTest` |
-| `importer` | `importer/` | `CsvImporter` |
+| `importer` | `importer/` | `Work24Importer` |
 | `repository` | `repository/` | `AttendanceRepository` |
 | `controller` | `controller/` | `AttendanceController` |
 | `view` | `view/` | `AttendanceView` |
@@ -295,10 +295,10 @@ Automatic merge failed; fix conflicts and then commit the result.
 | 상황 | 이슈 제목 | 라벨 | 브랜치 | PR 제목 |
 | --- | --- | --- | --- | --- |
 | 기능 구현 | `[L-05] 출결 입력 — 입실·퇴실 시각으로 상태 판정` | `✨ Feature` `rule` `controller` | `feat/24-L05-attendance-checkin` | `feat: [L-05] 출결 입력과 상태 판정 #24` |
-| 기능을 쪼갠 두 번째 이슈 | `[L-06] 출결 CSV 가져오기 — 트랜잭션 저장` | `✨ Feature` `repository` `sql` | `feat/26-L06-csv-transaction-save` | `feat: [L-06] 출결 CSV 트랜잭션 저장 #26` |
+| 기능을 쪼갠 두 번째 이슈 | `[L-06] 출결 가져오기 — 트랜잭션 저장` | `✨ Feature` `repository` `sql` | `feat/26-L06-import-transaction-save` | `feat: [L-06] 출결 가져오기 트랜잭션 저장 #26` |
 | 머지된 기능의 버그 | `[L-02] 로그인 성공 시 true 미반환, 미등록 번호도 로그인됨` | `🐞 Bug` `수정(fix)` `controller` | `fix/31-L02-login-return` | `fix: [L-02] 로그인 성공 시 true 반환 #31` |
 | 테스트만 추가 | `[L-05] 09:00 정각 입실 경계값 테스트` | `🧪 Test` `rule` | `test/33-L05-late-boundary-test` | `test: [L-05] 지각 판정 경계값 테스트 #33` |
-| 리팩터링 | `[L-06] CsvImporter 파싱을 스트림으로 정리` | `🔨 Refactor` `importer` | `refactor/40-L06-csv-stream-parse` | `refactor: [L-06] CsvImporter 스트림 파싱 #40` |
+| 리팩터링 | `[L-06] Work24Importer 파싱을 스트림으로 정리` | `🔨 Refactor` `importer` | `refactor/40-L06-import-stream-parse` | `refactor: [L-06] Work24Importer 스트림 파싱 #40` |
 | 환경 설정 | `[환경] 패키지 이름 skeleton → com.latecatcher.app 변경` | `🌏 Environment` `config` `repository` | `chore/30-package-rename` | `chore: [환경] 패키지 이름 com.latecatcher.app으로 변경 #30` |
 | 문서 | `[문서] 노션 요구사항 명세 페이지 작성` | `🌏 Environment` `docs` | `docs/35-notion-requirements` | `docs: [문서] 노션 요구사항 명세 링크 추가 #35` |
 | 논의 | `[논의] 지각 환산 단위기간을 월로 할지 30일로 할지` | `💬 Suggestion` `rule` | 만들지 않음 | 없음 |
@@ -332,8 +332,8 @@ done
 
 ```text
 [L-05] 출결 입력 — 입실·퇴실 시각으로 상태 판정
-[L-06] 출결 CSV 가져오기 — 파일 읽기와 미리보기
-[L-06] 출결 CSV 가져오기 — 트랜잭션 저장
+[L-06] 출결 가져오기 — 파일 읽기와 미리보기
+[L-06] 출결 가져오기 — 트랜잭션 저장
 [L-02] 로그인 성공 시 true 미반환, 미등록 번호도 로그인됨
 [환경] 패키지 이름 skeleton → com.latecatcher.app 변경
 [문서] 노션 요구사항 명세 페이지 작성
@@ -365,14 +365,14 @@ done
 #### Feature 이슈 예
 
 ```markdown
-제목: [L-06] 출결 CSV 가져오기 — 트랜잭션 저장
+제목: [L-06] 출결 가져오기 — 트랜잭션 저장
 labels: ✨ Feature, repository, sql
 
 ## 📄 Describe
 - 기능 번호: L-06 (PLAN.md 4절) / 담당: A
 - 예상 작업 시간: 3h
 
-미리보기에서 y를 받은 CSV 목록을 하나의 트랜잭션으로 저장한다.
+미리보기에서 y를 받은 출결 목록을 하나의 트랜잭션으로 저장한다.
 중간 행이 실패하면 한 행도 남지 않게 한다. 파일 읽기와 미리보기는 #25에서 다룬다.
 
 ## ✅ Tasks
@@ -440,7 +440,7 @@ PR 본문은 **`.github/PULL_REQUEST_TEMPLATE.md`가 정본**이다. PR을 열�
 
 ```text
 feat: [L-05] 출결 입력과 상태 판정 #24
-feat: [L-06] 출결 CSV 트랜잭션 저장 #26
+feat: [L-06] 출결 가져오기 트랜잭션 저장 #26
 fix: [L-02] 로그인 성공 시 true 반환 #31
 chore: [환경] 패키지 이름 com.latecatcher.app으로 변경 #30
 docs: [문서] 노션 요구사항 명세 링크 추가 #35
@@ -488,9 +488,10 @@ docs: [문서] 노션 요구사항 명세 링크 추가 #35
 ## 📌 참고 사항
 확인 방법
 1. schema.sql 재실행 (import_log_tbl 추가됨)
-2. 로그인 → 메뉴 3 → 경로 `data/sample.csv` → 미리보기 48행 확인 → y
-3. `select count(*) from attendance_tbl;` → 48
-4. data/sample.csv 30행째 전화번호를 지우고 다시 3 → "30행: 훈련생을 찾을 수 없습니다" → count 그대로 48
+2. `data/sample.txt`를 `data/broken.txt`로 복사하고, 30번째 날짜 줄의 일자를 수업일이 아닌 `2026-10-03`(토)으로 바꾼다
+3. 로그인 → 메뉴 3 → 경로 `data/broken.txt` → y → 저장 중 FK 위반 → "저장 실패, 0행 저장"
+4. `select count(*) from attendance_tbl;` → 0 (앞의 29줄도 남지 않음 = 롤백 확인)
+5. 메뉴 3 → 경로 `data/sample.txt` → 미리보기 120행 확인 → y → count 120
 
 실습한 학습 항목
 - JDBC 트랜잭션 (setAutoCommit / commit / rollback), REPLACE INTO
@@ -500,7 +501,7 @@ docs: [문서] 노션 요구사항 명세 링크 추가 #35
 
 ### 머지 커밋 메시지
 
-GitHub의 기본 머지 메시지는 `Merge pull request #28 from user/feat/26-L06-csv-transaction-save` 다. 이대로 두면 `main` 로그에 태그도 설명도 남지 않으므로 **머지 버튼을 누를 때 메시지를 커밋 규칙에 맞게 고쳐 쓴다.**
+GitHub의 기본 머지 메시지는 `Merge pull request #28 from user/feat/26-L06-import-transaction-save` 다. 이대로 두면 `main` 로그에 태그도 설명도 남지 않으므로 **머지 버튼을 누를 때 메시지를 커밋 규칙에 맞게 고쳐 쓴다.**
 
 | | 규칙 |
 | --- | --- |
@@ -509,7 +510,7 @@ GitHub의 기본 머지 메시지는 `Merge pull request #28 from user/feat/26-L
 | **마지막 줄** | `Closed #이슈번호` |
 
 ```text
-feat: [L-06] 출결 CSV 트랜잭션 저장 #26
+feat: [L-06] 출결 가져오기 트랜잭션 저장 #26
 
 - 미리보기에서 y를 받은 Attendance 목록을 하나의 트랜잭션으로 저장한다.
 - 중간 행이 실패하면 전부 롤백된다.
