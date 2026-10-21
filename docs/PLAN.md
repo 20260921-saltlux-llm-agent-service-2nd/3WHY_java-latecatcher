@@ -23,7 +23,7 @@
 ### 사용 장면
 
 ```text
-[로그인: 010-1234-5678]
+[로그인: yeonghee]
 ===== 이영희 — 10월 출결 =====
 수업일 22일 중 진행 16일
 출석 12  지각 2  조퇴 1  결석 1
@@ -77,8 +77,8 @@
 
 | 번호 | 기능명 | 영문 이름(브랜치) | 입력 | 핵심 동작 | 스켈레톤 | 담당 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L-01 | 회원가입 | `sign-up` | 이름, 나이, 휴대폰 번호 | 빈 값과 나이를 검사하고, 휴대폰 번호 중복 확인 후 훈련생을 등록한다. | F-01 그대로 | A |
-| L-02 | 로그인 | `phone-login` | 휴대폰 번호 | 일치하는 훈련생을 조회하여 로그인 상태로 보관한다. | F-02 그대로 | A |
+| L-01 | 회원가입 | `sign-up` | 아이디, 비밀번호, 비밀번호 확인, 이름, 휴대폰 번호(선택) | 빈 값을 검사하고, 아이디 중복과 비밀번호 확인 일치를 확인한 뒤 비밀번호를 **해시로 바꿔** 훈련생을 등록한다. 휴대폰 번호는 비워도 된다. | F-01 변형: 휴대폰 번호 → 아이디·비밀번호, 나이 삭제 | A |
+| L-02 | 로그인 | `id-login` | 아이디, 비밀번호 | 아이디로 훈련생을 조회하고 비밀번호 해시가 같으면 로그인 상태로 보관한다. | F-02 변형: 휴대폰 번호 조회 → 아이디 조회 + 비밀번호 확인 | A |
 | L-03 | 과정 설정 | `course-setting` | 과정명, 훈련 시작·종료일, 수업 시작·종료 시각, 규칙 수치 | `course_tbl`에 과정 1행을 저장하거나 수정한다. 규칙 수치는 3절의 설정 컬럼이다. | 신규 | C |
 | L-04 | 수업일 캘린더 | `class-calendar` | (생성) 없음 / (휴일 등록) 날짜, 메모 | 훈련 기간의 평일을 `class_day_tbl`에 생성한다. 공휴일·휴강일은 수동으로 수업일에서 뺀다. | 신규 | C |
 | L-05 | 출결 입력 (수동) | `attendance-checkin` | 날짜, 입실 시각, 퇴실 시각 | 수업일인지 확인하고, 과정의 시작·종료 시각으로 상태(출석/지각/조퇴)를 판정해 저장한다. 같은 날짜 중복 입력은 알려 준다. | F-04 변형: 구독 추가 → 출결 추가. 만료일 계산 → 상태 판정 | B |
@@ -95,7 +95,7 @@
 | 번호 | 기능명 | 영문 이름(브랜치) | 입력 | 핵심 동작 | 스켈레톤 | 담당 |
 | --- | --- | --- | --- | --- | --- | --- |
 | L-13 | 공휴일 API | `holiday-api` | 연도 | 공공데이터포털 특일정보 API로 `class_day_tbl`의 공휴일을 자동 반영한다. (`HttpClient` + JSON) | 신규 | v0.1 후 이슈로 나눔 |
-| L-14 | 텔레그램 봇 | `telegram-bot` | "도착" 메시지, `/내출결` | "도착" 메시지로 입실을 기록하고, 08:50 미체크 알림을 보내고, 출결을 조회한다. | 신규 | v0.1 후 이슈로 나눔 |
+| L-14 | 디스코드 알림 (검토) | `discord-notify` | 디스코드 웹훅 URL (훈련생별, 선택) | 매일 정해진 시각에 어제까지의 출석률과 경고를 훈련생 본인의 디스코드 채널로 보낸다. 웹훅은 보내기만 하므로 `HttpClient` + JSON으로 충분하다. 디스코드에서 명령을 **받는** 봇은 Gateway 연결과 외부 라이브러리가 필요해 하지 않는다 (12절 원칙). | 신규 | v0.1 후 검토 |
 
 ### 스켈레톤에서 가져오지 않는 기능
 
@@ -109,6 +109,7 @@
 ### 하지 않는 것
 
 - 고용24 로그인 자동화·스크래핑 (불가능하고 약관 위반 소지)
+- 텔레그램 연동. 메신저 연동은 디스코드 알림(L-14)만 검토한다
 - 웹/GUI, 여러 과정 동시 관리, 커넥션 풀, 프레임워크
 - 반 친구 데이터 무단 입력 — **본인 동의 + 본인 입력**만
 
@@ -123,7 +124,7 @@
 | **방문자** | 로그인하지 않은 사용자. 시작 메뉴만 쓴다 |
 | **훈련생** | 로그인한 사용자. v0.1에는 권한 구분이 없어 모든 출결 메뉴를 쓸 수 있다 (열린 질문 8) |
 | 고용24 (외부) | 마이페이지 → 훈련현황의 출결 화면. 프로그램과 직접 연결하지 않고, 파일 내려받기도 없다. 훈련생이 표를 드래그로 복사해 텍스트 파일로 저장한다 |
-| 공공데이터포털 · 텔레그램 (외부, v0.2) | L-13, L-14에서만 쓴다 |
+| 공공데이터포털 · 디스코드 (외부, v0.2) | L-13, L-14에서만 쓴다. 디스코드는 알림을 받기만 한다 |
 
 #### 다이어그램 (v0.1)
 
@@ -245,8 +246,8 @@ flowchart LR
 
 | 번호 | 액터 | 사전 조건 | 성공 결과 | 주요 예외 |
 | --- | --- | --- | --- | --- |
-| L-01 회원가입 | 방문자 | — | 훈련생 1행 생성 | 빈 값, 나이 형식 오류, 휴대폰 번호 중복 → 안내 후 재입력 |
-| L-02 로그인 | 방문자 | 회원가입했다 | 로그인 상태 보관, 출결 메뉴로 | 없는 번호 → "등록되지 않은 번호입니다" |
+| L-01 회원가입 | 방문자 | — | 훈련생 1행 생성 (비밀번호는 솔트 + 해시로 저장) | 빈 값, 아이디 중복, 비밀번호 확인 불일치 → 안내 후 재입력. 휴대폰 번호는 빈 값 허용 |
+| L-02 로그인 | 방문자 | 회원가입했다 | 로그인 상태 보관, 출결 메뉴로 | 없는 아이디 또는 틀린 비밀번호 → "아이디 또는 비밀번호가 맞지 않습니다" (어느 쪽이 틀렸는지 알려 주지 않는다) |
 | L-03 과정 설정 | 훈련생 | 로그인 | `course_tbl` 1행 저장·수정 | 종료일이 시작일보다 빠름, 시각 형식 오류 |
 | L-04 수업일 캘린더 | 훈련생 | 과정 설정 | 훈련 기간 평일 생성, 휴일 등록 시 수업일에서 제외 | 이미 생성됨 → 다시 만들지 않음 |
 | L-10 로그아웃 | 훈련생 | 로그인 | 로그인 정보 제거, 시작 메뉴로 | — |
@@ -265,13 +266,13 @@ flowchart LR
 | --- | --- | --- |
 | 5층 구조 model / repository / view / controller / run | `chap99-Java-Application`, 스켈레톤 | 그대로 유지. 새 기능도 같은 층 구조로 |
 | enum | `chap14_enum` | `AttendanceStatus` — 한글 라벨, "환산 대상인가" 플래그를 enum 필드로 |
-| 인터페이스·다형성 | `chap09-polymorphism` | `AttendanceImporter` 인터페이스 — v0.1 `Work24Importer`, v0.2 `TelegramImporter`. 가져오는 곳이 달라도 저장 코드는 하나 |
+| 인터페이스·다형성 | `chap09-polymorphism` | `Notifier` 인터페이스 — v0.1 `ConsoleNotifier`(경고를 화면에 출력), v0.2 `DiscordNotifier`. 보내는 곳이 달라도 경고 계산 코드는 하나 |
 | 상속·예외 | `chap07-inheritance` | `ImportException extends RuntimeException` — 몇 번째 줄이 왜 실패했는지 담는다 |
 | 컬렉션·제네릭 | `chap11-collections`, `chap10-Generics` | `Map<LocalDate, Attendance>` 로 날짜별 기록, `List<MonthlySummary>` |
 | 람다·스트림 | `chap15-lambda`, `chap16-stream` | 붙여 넣은 줄 → `dropWhile(헤더 전)` → `filter(빈 줄 제외)` → `map(파싱)` → `toList()`; 랭킹 `sorted(comparing(...))`; 경고 계산 |
 | java.time | `chap09-api` | `LocalDate`/`LocalTime`/`YearMonth`, 평일 생성 (`DayOfWeek`), 월 경계 계산 |
 | **파일 읽기** | **새로 배움** (`Properties.load(FileReader)`는 이미 씀) | `Files.readAllLines(Path)` 또는 `BufferedReader` 로 붙여 넣은 텍스트 파일 읽기. 작은 확장이지만 처음 |
-| 스레드 | `chap17-thread` | v0.2 텔레그램 폴링 루프 (`ScheduledExecutorService`) |
+| 스레드 | `chap17-thread` | v0.2 디스코드 알림 예약 전송 (`ScheduledExecutorService`) |
 
 ### 5.2 MySQL (`02_Database/`)
 
@@ -311,12 +312,12 @@ flowchart LR
 
 | 스켈레톤 (OTT 구독관리) | 지각 잡는 자바 | 바뀌는 것 |
 | --- | --- | --- |
-| `model.Member` (memberId, name, age, phone) | `model.Member` **그대로** | 훈련생. age는 두어도 무해 |
+| `model.Member` (memberId, name, age, phone) | `model.Member` (memberId, loginId, passwordHash, passwordSalt, name, phone) | 훈련생. **age 삭제**, 로그인용 필드 추가, phone은 선택(`null` 가능) |
 | `model.Membership` (ottType, planName, enrollDate, expiryDate, active) | `model.Attendance` (attendanceId, memberId, attendDate, checkIn, checkOut, status, memo, source) | 구독 1건 → 출결 1건. `LocalDateTime` 2개 → `LocalDate` + `LocalTime` 2개 |
 | — | `model.AttendanceStatus` (enum) | `PRESENT, LATE, EARLY_LEAVE, OUTING, ABSENT, EXCUSED` |
 | — | `model.Course` | 과정 설정 1행 |
 | — | `model.MonthlySummary` | 월별 집계 결과 (뷰 1행) |
-| `repository.MemberRepository` (save / findByPhone / deleteById) | **그대로** | 이미 구현 중 |
+| `repository.MemberRepository` (save / findByPhone / deleteById) | save / **findByLoginId** / deleteById | 조회 키만 휴대폰 번호 → 아이디로 바꾼다 |
 | `repository.MembershipRepository` | `repository.AttendanceRepository` | `addMembership` → `save`, `findAllMembershipsByMemberId` → `findByMemberAndMonth`, `extendMembership` → 삭제, + `saveAll(List, Connection)` (트랜잭션용), `findMissingOnDate` (LEFT JOIN) |
 | — | `repository.CourseRepository`, `repository.ClassDayRepository` | 설정·캘린더 |
 | — | `service` 계층? | **도입하지 않는다.** 규칙은 `rule.AttendanceRule` (순수 Java 클래스)에, 흐름은 Controller에. 아직 안 배운 계층을 만들지 않는다 |
@@ -337,13 +338,16 @@ flowchart LR
 CREATE DATABASE IF NOT EXISTS latedb DEFAULT CHARACTER SET utf8mb4;
 USE latedb;
 
-CREATE TABLE member_tbl (                           -- 스켈레톤 그대로
-    member_id INT AUTO_INCREMENT,
-    name      VARCHAR(30) NOT NULL,
-    age       INT         NOT NULL,
-    phone     VARCHAR(20) NOT NULL,
+CREATE TABLE member_tbl (                           -- 스켈레톤 변형: 아이디·비밀번호 로그인, age 삭제
+    member_id     INT AUTO_INCREMENT,
+    login_id      VARCHAR(20) NOT NULL,
+    password_hash CHAR(64)    NOT NULL,                 -- SHA-256(솔트 + 비밀번호), 16진수 64자
+    password_salt CHAR(32)    NOT NULL,                 -- 회원마다 다른 16바이트 난수, 16진수 32자
+    name          VARCHAR(30) NOT NULL,
+    phone         VARCHAR(20) NULL,                     -- 선택 입력
     CONSTRAINT pk_member_tbl PRIMARY KEY (member_id),
-    CONSTRAINT uq_member_tbl_phone UNIQUE (phone)
+    CONSTRAINT uq_member_tbl_login_id UNIQUE (login_id),
+    CONSTRAINT uq_member_tbl_phone UNIQUE (phone)       -- NULL은 여러 행이어도 된다
 );
 
 CREATE TABLE course_tbl (                           -- 과정 설정, 1행만 사용
@@ -375,7 +379,7 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
     check_out     TIME,
     status        ENUM('PRESENT','LATE','EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,
     memo          VARCHAR(200),
-    source        ENUM('MANUAL','WORK24','TELEGRAM') NOT NULL DEFAULT 'MANUAL',
+    source        ENUM('MANUAL','WORK24') NOT NULL DEFAULT 'MANUAL',
     CONSTRAINT pk_attendance_tbl PRIMARY KEY (attendance_id),
     CONSTRAINT fk_attendance_tbl_member_tbl FOREIGN KEY (member_id)
         REFERENCES member_tbl (member_id) ON DELETE CASCADE,
@@ -671,7 +675,7 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 
 ```text
 0단계 (3 PR) ─┬─ A: 출결 가져오기 ──────┐
-              ├─ B: 출결 입력·판정·마감 ─┼─ C: 메뉴 통합 ─ [v0.1] ─ v0.2 (공휴일 API, 텔레그램: 이슈로 나눠 각자) ─ [v0.2]
+              ├─ B: 출결 입력·판정·마감 ─┼─ C: 메뉴 통합 ─ [v0.1] ─ v0.2 (공휴일 API, 디스코드 알림 검토: 이슈로 나눠 각자) ─ [v0.2]
               └─ C: 캘린더·통계 ─────────┘
 ```
 
@@ -696,6 +700,8 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 
 - 수업에서 배우지 않은 라이브러리는 꼭 필요할 때만 넣고, 넣을 때는 이유를 PR에 적는다.
 - `java.net.http.HttpClient`(v0.2 API 호출)는 JDK 11부터 들어 있어서 따로 추가하지 않는다.
+- **비밀번호 해시**: JDK에 들어 있는 `SecureRandom`(솔트 16바이트)과 `MessageDigest`(SHA-256)만 쓴다. 라이브러리를 넣지 않는다. 저장은 `password_hash`, `password_salt` (7절). 비교는 SQL이 아니라 Java에서 한다 — 아이디로 회원을 조회한 뒤 입력값을 같은 솔트로 해시해 맞춰 본다. `insert.sql`의 샘플 회원도 해시로 넣는다.
+- **비밀번호 입력은 화면에 보인다**: `System.console().readPassword()`는 IntelliJ 실행 창에서 `null`을 돌려주므로 `Scanner`로 받는다. 콘솔 학습 프로젝트의 한계로 받아들인다.
 - v0.2에서만 추가: **Gson** (JSON), `api.properties` (gitignore)
 - SQL은 `mapper/*.xml` / 자원은 try-with-resources / `SQLException` → `IllegalStateException` — 스켈레톤 규칙 유지
 - 날짜: `getObject(col, LocalDate.class)` 방식으로 통일 (스켈레톤의 `getTimestamp().toLocalDateTime()`은 `DATETIME` 컬럼이 없어지므로 쓰지 않음)
@@ -719,10 +725,10 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 1. **출결 규칙 확정** — 지각 환산(3회=1일?), 단위기간(월? 30일?), 장려금·수료 기준 %, 공결 처리. → 훈련기관 안내문 확인 후 3절 표와 `course_tbl` 기본값 수정
 2. ~~**고용24 출결현황 화면의 실제 열** — 첫 데이터를 받아 보고 8절 형식 확정~~ → **결정: 세부내역 표 6열 그대로, 복사한 텍스트를 탭으로 읽는다** ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전), `data/sample.txt`)
 3. ~~Java 17 유지 vs 21로 통일~~ → **결정: 수업과 같은 Java 21** ([12절](#12-기술-선택))
-4. `Member.age` 유지 여부 (스켈레톤 그대로 두는 쪽을 제안)
+4. ~~`Member.age` 유지 여부~~ → **결정: 삭제.** 로그인은 아이디·비밀번호, 휴대폰 번호는 선택 입력 ([4절](#4-기능), [7절](#7-데이터-설계))
 5. A/B/C 담당자
 6. 머지 방식 merge commit vs squash (CONVENTION은 merge commit 제안)
-7. v0.2에서 공휴일 API와 텔레그램 중 무엇을 먼저 할지
+7. v0.2에서 공휴일 API와 디스코드 알림 중 무엇을 먼저 할지 (텔레그램은 하지 않기로 함)
 8. **과정 설정(L-03)·수업일 캘린더(L-04)·결석 일괄 마감(L-07)을 누가 실행하나** — v0.1에는 권한 구분이 없어 어느 훈련생이든 반 전체에 영향을 주는 메뉴를 쓸 수 있다. 팀이 정한 한 사람만 실행할지, 관리자 구분을 둘지 정한다 ([4절 유스케이스](#유스케이스))
 
 ---
@@ -732,12 +738,13 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 [4절](#4-기능)의 기능과 노션 문서 작업을 함께 묶어 세 사람의 업무량이 비슷하도록 나눈다.
 시간은 현재 코드 상태와 이 문서를 보고 잡은 **추정치**다. 이슈를 만들 때 각자 예상 시간을 다시 적고, 합계가 크게 어긋나면 이 표를 고친다.
 
-### A — 훈련생 + 출결 가져오기 + 캘린더 (약 16.5h)
+### A — 훈련생 + 출결 가져오기 + 캘린더 (약 18h)
 
 | 작업 | 예상 시간 |
 | --- | --- |
 | 0단계 #1: 패키지 이름 `com.latecatcher.app`으로 변경 (`QUERY_FILE` 경로 포함), mainClass 수정, 빌드 설정 수업 버전으로 맞춤 (Java 21, Gradle 9.6.0), `MemberRepository` 문법 오류 수정, `db.properties.example` | 1.5h |
-| L-02 로그인 버그 수정, L-10 로그아웃, L-11 회원 탈퇴 마무리 | 1.5h |
+| L-01·L-02 아이디·비밀번호 회원가입·로그인으로 변경 (비밀번호 해시, 스켈레톤 로그인 버그 수정 포함) | 3h |
+| L-10 로그아웃, L-11 회원 탈퇴 마무리 | 1h |
 | L-06 출결 가져오기 | 6h |
 | L-04 수업일 캘린더 | 3h |
 | 노션 **요구사항 명세** 페이지 (기능 명세) | 2h |
