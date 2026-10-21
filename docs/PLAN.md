@@ -480,7 +480,7 @@ java-latecatcher/
 
 | 이슈 | 담당 | 내용 | 라벨 |
 | --- | --- | --- | --- |
-| #1 | A | 패키지 `skeleton` → `com.latecatcher.app` 변경 (repository의 `QUERY_FILE` 경로 포함, 9절), `build.gradle` mainClass 수정, `MemberRepository.save` 문법 오류 수정, `db.properties.example`, `data/` gitignore | `🌏 Environment` `config` |
+| #1 | A | 패키지 `skeleton` → `com.latecatcher.app` 변경 (repository의 `QUERY_FILE` 경로 포함, 9절), `build.gradle` mainClass 수정, **`build.gradle`·Gradle 래퍼를 수업 버전(Java 21, Gradle 9.6.0, Lombok 설정)으로 맞춤 (12절)**, `MemberRepository.save` 문법 오류 수정, `db.properties.example`, `data/` gitignore | `🌏 Environment` `config` |
 | #2 | B | `resources/db/schema.sql` (7절) + `insert.sql` (팀 3명, 10월 수업일, 샘플 출결), `model/Attendance`, `AttendanceStatus`, `Course` | `🌏 Environment` `sql` `model` |
 | #3 | C | 이슈 템플릿 정리 (파일명 오타 `TAMPLATE`, 라벨 `enhancement` → `✨ Feature`, bug/refactor/environment/suggestion 추가 — PR 템플릿은 정본이므로 그대로), 라벨 생성, main 브랜치 보호(approve 2), README 초안, `Application` 메뉴 뼈대("준비 중") | `🌏 Environment` `run` `docs` |
 
@@ -501,8 +501,20 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 
 ## 12. 기술 선택
 
-- **Java 17** (현재 `build.gradle`) — 수업은 21이었으므로 21로 올려도 됨 (열린 질문 3). `java.net.http.HttpClient`는 11+라 둘 다 OK
-- **Gradle**, `mysql-connector-j 9.7.0`, **Lombok** `1.18.46`, **JUnit 6** — 스켈레톤 `build.gradle` 그대로
+**원칙: 기술과 버전은 수업에서 쓴 것을 그대로 따른다.** 기준은 `03_jdbc`의 `05-JDBC`, `06-JDBC-Exercise` 프로젝트 설정이다. 스켈레톤이 수업과 다르면 수업에 맞춰 고친다 (0단계 #1).
+
+| 항목 | 수업 | 스켈레톤 (현재) | 프로젝트 |
+| --- | --- | --- | --- |
+| JDK | **Temurin 21** (IntelliJ SDK `temurin-21`, language level 21) | `build.gradle`에 Java 17 | **21** |
+| 빌드 | Gradle, 래퍼 **9.6.0** | 래퍼 9.3.0 | **9.6.0** |
+| DB 드라이버 | `com.mysql:mysql-connector-j:9.7.0` | 같음 | 그대로 |
+| Lombok | `compileOnly` + `annotationProcessor` `1.18.46` (테스트는 `testCompileOnly` + `testAnnotationProcessor` `1.18.48`) | `runtimeOnly`가 하나 더 있고 테스트용이 없음 | 수업 설정 그대로 |
+| 테스트 | JUnit `junit-bom:6.0.0` + `junit-jupiter`, `useJUnitPlatform()` | 같음 | 그대로 |
+| DB | MySQL 8.0, `com.mysql.cj.jdbc.Driver`, `db.properties` | 같음 | 그대로 |
+| 개발 환경 | macOS + IntelliJ IDEA | — | 그대로 |
+
+- 수업에서 배우지 않은 라이브러리는 꼭 필요할 때만 넣고, 넣을 때는 이유를 PR에 적는다.
+- `java.net.http.HttpClient`(v0.2 API 호출)는 JDK 11부터 들어 있어서 따로 추가하지 않는다.
 - v0.2에서만 추가: **Gson** (JSON), `api.properties` (gitignore)
 - SQL은 `mapper/*.xml` / 자원은 try-with-resources / `SQLException` → `IllegalStateException` — 스켈레톤 규칙 유지
 - 날짜: `getObject(col, LocalDate.class)` 방식으로 통일 (스켈레톤의 `getTimestamp().toLocalDateTime()`은 `DATETIME` 컬럼이 없어지므로 쓰지 않음)
@@ -525,7 +537,7 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 
 1. **출결 규칙 확정** — 지각 환산(3회=1일?), 단위기간(월? 30일?), 장려금·수료 기준 %, 공결 처리. → 훈련기관 안내문 확인 후 3절 표와 `course_tbl` 기본값 수정
 2. **고용24 출결현황 화면의 실제 열** — 첫 CSV를 받아 보고 8절 형식 확정
-3. Java 17 유지 vs 21로 통일
+3. ~~Java 17 유지 vs 21로 통일~~ → **결정: 수업과 같은 Java 21** ([12절](#12-기술-선택))
 4. `Member.age` 유지 여부 (스켈레톤 그대로 두는 쪽을 제안)
 5. A/B/C 담당자
 6. 머지 방식 merge commit vs squash (CONVENTION은 merge commit 제안)
@@ -542,7 +554,7 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 
 | 작업 | 예상 시간 |
 | --- | --- |
-| 0단계 #1: 패키지 이름 `com.latecatcher.app`으로 변경 (`QUERY_FILE` 경로 포함), mainClass 수정, `MemberRepository` 문법 오류 수정, `db.properties.example` | 1.5h |
+| 0단계 #1: 패키지 이름 `com.latecatcher.app`으로 변경 (`QUERY_FILE` 경로 포함), mainClass 수정, 빌드 설정 수업 버전으로 맞춤 (Java 21, Gradle 9.6.0), `MemberRepository` 문법 오류 수정, `db.properties.example` | 1.5h |
 | L-02 로그인 버그 수정, L-10 로그아웃, L-11 회원 탈퇴 마무리 | 1.5h |
 | L-06 출결 CSV 가져오기 | 6h |
 | L-04 수업일 캘린더 | 3h |
