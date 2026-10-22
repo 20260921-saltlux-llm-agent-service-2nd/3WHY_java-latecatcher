@@ -46,16 +46,9 @@ public class Application {
 
     private static void printStartMenu() {
         System.out.println();
-        System.out.println("===== 개인 출결 관리 시스템 =====");
+        System.out.println("===== 출결 관리 시스템 =====");
         System.out.println("1. 회원가입");
         System.out.println("2. 로그인");
-        System.out.println("3. 과정 설정");
-        System.out.println("4. 출결 입력(수동)");
-        System.out.println("5. 내 출결 현황");
-        System.out.println("6. 반 전체 현황");
-        System.out.println("7. 로그아웃");
-        System.out.println("8. 회원 탈퇴");
-
         System.out.println("9. 프로그램 종료");
     }
 
@@ -67,8 +60,8 @@ public class Application {
         int age = readInt(scanner, "나이: ");
         System.out.print("휴대폰 번호 (예: 010-1234-5678): ");
         String phone = scanner.nextLine().trim();
+        System.out.println("준비중입니다.");
 
-        controller.signUp(name, age, phone);
     }
 
     private static boolean login(Scanner scanner, MemberController controller) {
@@ -76,13 +69,9 @@ public class Application {
         System.out.println("===== 로그인 =====");
         System.out.print("휴대폰 번호 (예: 010-1234-5678): ");
         String phone = scanner.nextLine().trim();
-        return controller.login(phone);
+        System.out.println("준비중입니다.");
+        return true;
     }
-
-
-
-
-
 
     private static boolean runAttendanceTrackingMenu(Scanner scanner, MemberController controller) {
         while (true) {
@@ -90,52 +79,60 @@ public class Application {
             int choice = readInt(scanner, "메뉴 선택: ");
 
             switch (choice) {
+                // 내 출결 리스크 보기
                 case 1:
-//                    controller.displayMyActiveCourse();
-                    break;
-                case 2:
-                    addCourse(scanner, controller);
-                    break;
-                case 3:
-                    System.out.print("정말 탈퇴하시겠습니까? 모든 구독 기록도 삭제됩니다. (y/n): ");
-                    String confirmation = scanner.nextLine().trim();
-                    if (!"y".equalsIgnoreCase(confirmation)) {
-                        System.out.println("회원 탈퇴를 취소했습니다.");
-                        break;
-                    }
 
-                    if (controller.deleteMyAccount()) {
-                        return false;
-                    }
-                    break;
+                // 출결 입력
+                case 2:
+
+                // 반 전체 현황
+                case 3:
+
+                // 과정 설정
                 case 4:
-                    controller.logout();
-                    return false;
+                addCourse(scanner, controller);
+                // 수업일 캘린더
+                case 5:
+
+                //회원 탈퇴
+                case 6:
+
+                // 로그아웃
+                case 8:
+
+
+                // 프로그램 종료
                 case 9:
                     System.out.println("프로그램을 종료합니다.");
                     return true;
+
                 default:
                     System.out.println("올바른 메뉴 번호를 입력하세요.");
             }
+
         }
     }
 
     private static void printMenu() {
         System.out.println();
         System.out.println("===== 과정 메뉴 =====");
-        System.out.println("1. 내 현재 과정 정보 조회");
-        System.out.println("2. 새로운 과정 추가");
-        System.out.println("3. 회원 탈퇴");
-        System.out.println("4. 로그아웃");
+        System.out.println("1. 내 출결 리스크 보기");
+        System.out.println("2. 출결 입력");
+        System.out.println("3. 반 전체 현황(월별 순위, 80% 미달자, 기록 없음)");
+        System.out.println("4. 과정 설정");
+        System.out.println("5. 수업일 캘린더");
+        System.out.println("6. 회원 탈퇴");
+        System.out.println("7. 로그 아웃");
         System.out.println("9. 프로그램 종료");
     }
 
     private static void addCourse(Scanner scanner, MemberController controller) {
         System.out.println();
-        System.out.println("===== 새로운 강의 추가 =====");
+        System.out.println("===== 과정 추가 =====");
         System.out.print("강의 이름 (예: AI서비스 개발자): ");
         String courseName = scanner.nextLine().trim();
 
+        controller.addCourse();
     }
 
     private static int readInt(Scanner scanner, String message) {
