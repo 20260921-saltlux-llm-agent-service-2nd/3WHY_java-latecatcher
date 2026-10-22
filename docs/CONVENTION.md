@@ -52,7 +52,7 @@
    | `[문서]` | README, PLAN, CONVENTION, 노션 페이지 |
    | `[논의]` | 팀이 정할 주제 (규칙 수치, 머지 방식 등) |
 
-4. **스켈레톤 단계 이슈(F-01 ~ F-11, #5 ~ #20)는 제목을 고치지 않는다.** 새로 만드는 이슈부터 이 규칙을 따른다. 스켈레톤 기능과 L 번호의 대응은 PLAN.md 4절 표의 "스켈레톤" 컬럼에 있다.
+4. **이 저장소의 이슈 #1과 PR #2는 이 규칙을 정하기 전에 만든 것이라 제목을 고치지 않는다.** 새로 만드는 이슈부터 이 규칙을 따른다. 스켈레톤 기능(F-01 ~ F-11)과 L 번호의 대응은 PLAN.md 4절 표의 "스켈레톤" 컬럼에 있다.
 
 ### 번호가 들어가는 곳
 
@@ -239,14 +239,14 @@ Automatic merge failed; fix conflicts and then commit the result.
 
 ### 종류 라벨 — 이슈·브랜치·커밋·PR 이름을 정한다
 
-| 종류 라벨 | 이슈 템플릿 | 이슈 제목 앞머리 | 브랜치 종류 | 커밋·PR 태그 | 라벨이 생기기 전 임시 라벨 |
-| --- | --- | --- | --- | --- | --- |
-| `✨ Feature` | `1-feature.md` | `[L-05]` | `feat/` | `feat` | `enhancement` |
-| `🐞 Bug` | `2-bug.md` | `[L-02]` (기능 무관하면 `[환경]`) | `fix/` | `fix` | `bug` |
-| `🔨 Refactor` | `3-refactor.md` | `[L-06]` (여러 기능에 걸치면 `[환경]`) | `refactor/` | `refactor` | `enhancement` |
-| `🌏 Environment` | `4-environment.md` | `[환경]` 또는 `[문서]` | `chore/` (설정) / `docs/` (문서) | `chore` / `docs` | `enhancement` |
-| `🧪 Test` | `1-feature.md`로 만들고 라벨만 바꾼다 | `[L-05]` | `test/` | `test` | `enhancement` |
-| `💬 Suggestion` | `5-suggestion.md` | `[논의]` | 만들지 않는다 | — | `question` |
+| 종류 라벨 | 이슈 템플릿 | 이슈 제목 앞머리 | 브랜치 종류 | 커밋·PR 태그 |
+| --- | --- | --- | --- | --- |
+| `✨ Feature` | `1-feature.md` | `[L-05]` | `feat/` | `feat` |
+| `🐞 Bug` | `2-bug.md` | `[L-02]` (기능 무관하면 `[환경]`) | `fix/` | `fix` |
+| `🔨 Refactor` | `3-refactor.md` | `[L-06]` (여러 기능에 걸치면 `[환경]`) | `refactor/` | `refactor` |
+| `🌏 Environment` | `4-environment.md` | `[환경]` 또는 `[문서]` | `chore/` (설정) / `docs/` (문서) | `chore` / `docs` |
+| `🧪 Test` | `1-feature.md`로 만들고 라벨만 바꾼다 | `[L-05]` | `test/` | `test` |
+| `💬 Suggestion` | `5-suggestion.md` | `[논의]` | 만들지 않는다 | — |
 
 `💬 Suggestion` 이슈는 코드를 바꾸지 않는다. 결론이 나서 문서를 고쳐야 하면 `🌏 Environment` 이슈를 새로 만든다.
 
@@ -274,7 +274,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 
 | 상태 라벨 | 언제 | 함께 붙이는 종류 라벨 |
 | --- | --- | --- |
-| `수정(fix)` | **이미 main에 머지된 기능**을 다시 고칠 때 (저장소에 이미 있음) | `🐞 Bug` 또는 `🔨 Refactor` |
+| `수정(fix)` | **이미 main에 머지된 기능**을 다시 고칠 때 | `🐞 Bug` 또는 `🔨 Refactor` |
 
 ### 붙이는 규칙
 
@@ -282,13 +282,14 @@ Automatic merge failed; fix conflicts and then commit the result.
 2. **브랜치:** 라벨은 없다. 이름의 종류(`feat/`, `fix/` …)는 위 종류 라벨 표를 따른다.
 3. **PR:** 이슈의 라벨을 **그대로** 붙인다. 작업하면서 이슈에 없던 패키지를 더 바꿨다면 그 파트 라벨을 PR에 추가한다.
 4. **종류가 바뀌면** (기능인 줄 알았는데 버그였다) 이슈 라벨을 바꾸고, 브랜치 이름도 `git branch -m`으로 맞춘다.
-5. **기존 라벨:** 스켈레톤 단계 이슈(#5 ~ #20)의 `enhancement` 라벨은 그대로 둔다. GitHub 기본 라벨은 지우지 않고, 새 라벨이 생긴 뒤에는 새 이슈에 쓰지 않는다.
+5. **GitHub 기본 라벨은 쓰지 않는다.** `bug`, `enhancement`, `question` 등 기본 라벨 10개는 종류 라벨과 겹쳐 헷갈리므로 지웠다. 중복이거나 하지 않기로 한 이슈는 라벨 대신 GitHub의 **Close as not planned** 또는 **Duplicate**로 닫는다.
 
-| ✗ 이 저장소에서 나온 예 | 무엇이 문제인가 | ✓ 고친 예 |
+| ✗ 잘못 붙인 예 | 무엇이 문제인가 | ✓ 고친 예 |
 | --- | --- | --- |
-| `#20 [FEAT] #F-04: 신규 구독 추가(2)` — `수정(fix)`만 | 종류 라벨이 없음 | `🐞 Bug`, `수정(fix)`, `controller` |
-| `#5 ~ #15` — `enhancement`만 | 파트 라벨이 없어 어느 파일을 바꾸는지 모름 | `✨ Feature`, `repository`, `controller` |
-| `#1 MD 파일 수정` — 라벨 없음 | 종류·파트 모두 없음 | `🌏 Environment`, `docs` |
+| 이 저장소 `#1 [common] package structure build` — 기본 라벨 `enhancement`만 | 종류 라벨이 아니고 파트 라벨도 없음 | `🌏 Environment`, `common` (#1은 이렇게 고쳐 두었다) |
+| 머지된 기능의 버그 이슈에 `수정(fix)`만 | 종류 라벨이 없음 | `🐞 Bug`, `수정(fix)`, `controller` |
+| 기능 이슈에 `✨ Feature`만 | 파트 라벨이 없어 어느 파일을 바꾸는지 모름 | `✨ Feature`, `repository`, `controller` |
+| 문서 수정 이슈에 라벨 없음 | 종류·파트 모두 없음 | `🌏 Environment`, `docs` |
 
 ### 예시 — 상황별 라벨과 이름
 
@@ -305,7 +306,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 
 ### 라벨 만들기 (0단계 [환경] 이슈)
 
-저장소 관리 권한이 있는 사람이 한 번 실행한다. `--force`는 같은 이름의 라벨이 있으면 색과 설명만 고친다. `수정(fix)`는 이미 있으므로 건드리지 않는다.
+저장소 관리 권한이 있는 사람이 저장소 폴더에서 한 번 실행한다. `--force`는 같은 이름의 라벨이 있으면 색과 설명만 고친다. **이 저장소에는 실행을 마쳤다** (라벨 18개).
 
 ```bash
 # 종류 라벨 6개
@@ -319,6 +320,15 @@ gh label create "💬 Suggestion"  --color D876E3 --description "팀 논의 주�
 # 파트 라벨 11개 — 종류 라벨과 구분되게 한 가지 색
 for part in common config sql model rule importer repository controller view run docs; do
   gh label create "$part" --color C5DEF5 --description "파트: $part" --force
+done
+
+# 상태 라벨 1개
+gh label create "수정(fix)" --color E99695 --description "이미 main에 머지된 기능을 다시 고칠 때" --force
+
+# GitHub 기본 라벨 10개 삭제 (붙이는 규칙 5번). 붙어 있는 이슈가 있으면 먼저 새 라벨로 바꾼다
+for l in "accessibility" "bug" "documentation" "duplicate" "enhancement" \
+         "good first issue" "help wanted" "invalid" "question" "wontfix"; do
+  gh label delete "$l" --yes
 done
 ```
 
@@ -552,15 +562,23 @@ Closed #26
 
 ## 7. GitHub 저장소 설정 체크리스트
 
-0단계 [환경] 이슈에서 처리한다.
+0단계 [환경] 이슈에서 처리한다. 체크된 항목은 이 저장소에 적용을 마친 것이다.
 
-- [ ] 라벨 생성 — [3절](#3-label-rule) "라벨 만들기"의 명령으로 종류 6개 + 파트 11개 (`수정(fix)`는 이미 있음)
-- [ ] `.github/ISSUE_TEMPLATE/` — 현재 `FEATURE_TAMPLATE.md` 1개(라벨 `enhancement`)가 있음 → 파일명 오타 수정, 라벨을 `✨ Feature`로, 제목 기본값을 `[L-00]`으로, Describe에 기능 번호·예상 시간 칸 추가, bug / refactor / environment / suggestion 추가
-- [x] `.github/PULL_REQUEST_TEMPLATE.md` — 이미 있음. 이 파일이 정본이므로 건드리지 않는다
-- [ ] `main` 브랜치 보호: PR 필수, approve 2 필수, 직접 push 금지, 머지 전 최신 main 반영 필수
-- [ ] Settings → Pull Requests: Merge commit만 허용, **머지 커밋 기본 메시지 = "Pull request title and description"**, 머지 후 브랜치 자동 삭제
-- [ ] 이름이 규칙과 다른 원격 브랜치 정리 (`20-feat-f-04-AddMember-2`, `feature/#11-…` 등 머지됐거나 중복인 것)
+- [x] 라벨 — [3절](#3-label-rule) "라벨 만들기"의 명령으로 종류 6개 + 파트 11개 + `수정(fix)`를 만들고, GitHub 기본 라벨 10개를 지웠다
+- [x] `.github/ISSUE_TEMPLATE/` — `1-feature` ~ `5-suggestion` 5종. 템플릿마다 종류 라벨과 제목 앞머리가 미리 채워진다
+- [x] `.github/PULL_REQUEST_TEMPLATE.md` — 이 파일이 정본이므로 건드리지 않는다
+- [x] `main` 보호 — **Settings → Rules → Rulesets** 의 `Code-Review` 규칙: 대상 기본 브랜치(`main`), Enforcement **Active**, **Bypass list 비움**(admin도 예외 없음), PR 필수, **approve 2**, 새 push 시 기존 approve 무효, 대화 해결 필수, 허용 머지 방식 **Merge**만, 삭제·force push 차단. **Require linear history는 켜지 않는다** (Merge commit과 충돌)
+- [x] **Settings → General → Pull Requests** 구역: **Allow merge commits**만 체크(squash·rebase 해제), 그 아래 드롭다운 **Pull request title and description**, **Automatically delete head branches** 체크
+- [ ] (선택) 머지 전 최신 `main` 반영 필수 — CI(status check)가 생기면 Ruleset에 **Require status checks to pass** + **Require branches to be up to date**를 켠다. 그전에는 [2절 작업 순서](#작업-순서--구현--커밋--main-pull--충돌-확인--push)대로 push 전에 `main`을 pull한다
 - [ ] (선택) Projects 보드 — Todo / In Progress / In Review / Done
+
+설정이 그대로인지 확인하는 명령:
+
+```bash
+gh api repos/20260921-saltlux-llm-agent-service-2nd/3WHY_java-latecatcher/rules/branches/main --jq '.[] | {type, parameters}'
+gh api repos/20260921-saltlux-llm-agent-service-2nd/3WHY_java-latecatcher \
+  --jq '{allow_merge_commit, allow_squash_merge, allow_rebase_merge, merge_commit_title, merge_commit_message, delete_branch_on_merge}'
+```
 
 ---
 
