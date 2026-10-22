@@ -570,7 +570,7 @@ java-latecatcher/
 ├─ + data/
 │  ├─ sample.txt                        # 커밋 (고용24 표를 복사한 모양의 견본)
 │  └─ *                                 # gitignore (개인 출결)
-├─ docs/  PLAN.md, CONVENTION.md
+├─ docs/  PLAN.md, CONVENTION.md, SCHEDULE.md (일정), erd.md (합의 ERD, 0-B)
 ├─ .github/  ISSUE_TEMPLATE/, PULL_REQUEST_TEMPLATE.md
 └─ src
    ├─ main
@@ -676,42 +676,90 @@ java-latecatcher/
 
 ## 11. 팀 구성과 역할 분담 (3명)
 
-규칙은 [CONVENTION.md](CONVENTION.md). **층이 아니라 기능으로 세로 분할** — 한 사람이 한 기능을 model → repository → controller → view까지 만든다.
+규칙은 [CONVENTION.md](CONVENTION.md).
+
+### 팀원과 기반 책임
+
+| 역할 | 팀원 | 0단계 기반 책임 | 만드는 것 |
+| --- | --- | --- | --- |
+| **A** | **RY** | **문서 구조** — 노션과 README의 뼈대 | 노션 페이지 트리, README 목차. 각 페이지·절의 **내용은 15절에서 다시 나눠** 각자 채운다 |
+| **B** | **YY** | **데이터 설계** — ERD와 물리 DB | 세 명의 ERD 초안을 종합한 **합의 ERD** (`docs/erd.md`), `schema.sql`, `insert.sql` |
+| **C** | **YI** | **코드 구조** — 프로젝트 뼈대 | 패키지 `com.latecatcher.app`, 빌드 설정, 9절 구조의 모든 파일과 그 안의 **주석·TODO** |
+
+세 사람이 각자 하나의 "기반"을 책임지고, 그 위에서 기능을 세로로 나눠 만든다. 기능은 **층이 아니라 기능으로 세로 분할** — 한 사람이 한 기능을 model → repository → controller → view까지 만든다.
+
+### 0단계 — 기반 작업 (기능 구현 전에 끝낸다)
+
+| 작업 | 담당 | 내용 | 이슈 제목 · 라벨 · 브랜치 (예) |
+| --- | --- | --- | --- |
+| **0-A 문서 구조** | A (RY) | ① 노션 페이지 트리 — 프로젝트 소개, 요구사항 명세, 모델링(ERD 초안 · 테이블 정의서 · properties 설명), 팀 R&R, ⭐Ground Rule, 데일리 스크럼, 회의록. 각 페이지는 **제목과 소제목, 채울 항목**만 둔다 ② README 목차 — 소개, 주요 기능, 실행 방법(clone → `schema.sql` → `db.properties` → 실행), 출결 가져오기 사용법, 프로젝트 구조, 팀, 문서 링크. 각 절은 "작성 예정"으로 비워 둔다 | `[문서] 노션 페이지 트리와 README 목차 구성` · `🌏 Environment` `docs` · `docs/번호-doc-structure` |
+| **0-B 데이터 설계** | B (YY) 책임, **세 명 모두 참여** | 아래 "ERD 만드는 순서" ①~⑤ | `[환경] ERD 합의와 schema.sql·insert.sql 작성` · `🌏 Environment` `sql` `docs` · `chore/번호-erd-schema` |
+| **0-C 코드 구조** | C (YI) | ① `build.gradle`·Gradle 래퍼를 수업 버전으로 (Java 21, Gradle 9.6.0, Lombok, UTF-8, mainClass `com.latecatcher.app.run.Application`, `run.standardInput`) — 12절 ② 패키지 `skeleton` → `com.latecatcher.app` (repository의 `QUERY_FILE` 경로 포함), 스켈레톤 컴파일 오류(`MemberRepository.save`, `MemberController.login`) 수정 ③ 9절 구조의 **모든 파일 생성** — 클래스 선언, 파일 머리 주석(역할, 관련 기능 번호), 메서드 자리에 **TODO** ④ `mapper/*.xml`에 쿼리 키와 TODO ⑤ `Application` 메뉴 뼈대 (선택하면 "준비 중") ⑥ `db.properties.example` ⑦ `./gradlew compileJava` 통과 | `[환경] 패키지 구조와 빌드 설정, 파일 뼈대·TODO 작성` · `🌏 Environment` `config` `common` `run` · `chore/번호-project-structure` |
+
+#### ERD 만드는 순서 (0-B)
+
+1. **세 명이 각자 ERD 초안을 그린다.** 4절 기능과 7절 데이터 설계를 읽고 **서로 보지 않고** Mermaid `erDiagram`으로 그려 노션 "모델링 → ERD 초안" 페이지에 올린다. 같은 설계를 세 번 보면 놓친 컬럼·관계·제약이 드러난다.
+2. **B가 종합한다.** 세 초안의 차이(테이블, 컬럼, 타입, 키, 관계, NULL 허용, 제약)를 표로 정리한다.
+3. **B가 AI에게 상담한다.** 차이가 난 지점마다 정규화, 키 선택, 제약을 물어보고, 질문과 답의 요지를 노션에 남긴다. AI 답은 근거로만 쓰고 결정은 팀이 한다.
+4. **세 명이 합의한다.** 회의에서 차이점을 하나씩 정한다. 합의본을 `docs/erd.md`(Mermaid)로 PR을 올리고, **작성자 B + approve 2 = 세 명 모두 동의**로 머지한다. 7절과 다른 점이 있으면 같은 PR에서 7절을 고친다.
+5. **B가 물리 DB를 만든다.** 합의 ERD대로 `resources/db/schema.sql`(DDL, 스켈레톤 제약 이름 규칙)과 `insert.sql`(팀 3명 계정 — C만 `role = 'ADMIN'`, 과정 1행, 훈련 기간 수업일, 샘플 출결)을 쓴다. 테이블 정의서(노션)는 합의 ERD에서 만든다.
+
+#### C의 주석·TODO 규칙 (0-C)
+
+- 파일 머리 주석: 이 클래스의 **역할**과 **관련 기능 번호** (`L-05, L-06`).
+- 구현할 자리마다 **`// TODO [기능번호] 할 일`** 형식으로 쓴다. IntelliJ의 **TODO 창**에서 기능 번호로 모아 볼 수 있다.
+
+  ```java
+  // TODO [L-05] 입실·퇴실 시각과 course 시작·종료 시각으로 상태 판정 (3절)
+  public AttendanceStatus judge(LocalTime checkIn, LocalTime checkOut, Course course) { … }
+  ```
+
+- 담당자 표시는 15절 업무 분장이 확정된 뒤 각 담당자가 자기 TODO를 처리하면서 지운다. 0-C에서는 넣지 않는다.
+- 메서드 시그니처는 6절 변환표와 7절 쿼리를 따른다. 본문은 `throw new UnsupportedOperationException("TODO")` 또는 기본값 반환으로 두어 **컴파일이 되게** 한다.
+- `model` 클래스의 필드는 **합의 ERD(0-B ④)가 머지된 뒤** 채운다. 그전에는 TODO로 둔다.
+
+#### 0단계 진행 순서 — 10/22(목) 하루
+
+전체 일정은 [SCHEDULE.md](SCHEDULE.md). 0단계는 **10/22 안에 끝내고, 17:00까지 이슈 생성을 마친다.**
+
+```text
+10/22 ─┬─ 0-A 노션·README 구조 (A)
+       ├─ 0-B ① ERD 초안 각자 (A·B·C) → ②③ 종합·AI 상담 (B) → ④ 합의 ERD 머지 → ⑤ schema.sql·insert.sql (B)
+       └─ 0-C ①② 빌드 설정·패키지 이름 → ③~⑦ 파일 뼈대·TODO (C) → model 필드·mapper 키를 합의 ERD에 맞춤
+       17:00 이슈 생성 완료 → 17:00 이후 브랜치 생성, 기능 코드 작성 시작
+```
+
+- 0-B ①은 세 명이 함께하므로 가장 먼저 한다. 0-C의 `model` 필드는 합의 ERD(0-B ④)를 기다린다.
+- 0-C를 ①②(빌드·패키지)와 ③~⑦(뼈대) 두 PR로 나눠도 된다.
+
+### 기능 분담
+
+**아래 표는 0단계 이전의 안이다. 0단계 기반 책임을 반영해 비중을 다시 나눈 업무 분장은 15절에서 새로 정한다.**
 
 | 담당 | 기능 | 만드는 것 | 집중 실습 항목 |
 | --- | --- | --- | --- |
-| **A — 훈련생 + 출결 가져오기** | 회원 CRUD 마무리, **출결 가져오기** | `Work24Importer`, `ImportException`, `AttendanceRepository.saveAll`, `import_log_tbl` | 파일 읽기, 스트림 파싱, **JDBC 트랜잭션**, REPLACE, (선택) executeBatch |
-| **B — 출결 + 규칙** | 출결 수동 입력(출석·결석), 상태 판정, **출석률·미입력 계산**, 중복 입력 처리 | `Attendance`, `AttendanceStatus`, `AttendanceRule` + **JUnit 테스트**, `AttendanceRepository.save` | enum, 순수 로직 + 단위 테스트, UNIQUE 위반 예외 구분 |
-| **C — 캘린더 + 통계 + 통합** | 과정 설정, 수업일 생성, **리스크 화면**, 반 전체 현황, **관리자 권한 확인**, `Application` 메뉴 통합, README | `Course`, `ClassDayRepository`, `MonthlySummary`, `v_monthly_attendance` 뷰, `AttendanceRepository.findMembersWithoutRecord`, `AttendanceView`, `run.Application` | java.time 평일 생성, VIEW, GROUP BY/HAVING, SUM(CASE), **LEFT JOIN + IS NULL**, INDEX + EXPLAIN |
+| **A (RY) — 훈련생 + 출결 가져오기** | 회원 CRUD 마무리, **출결 가져오기** | `Work24Importer`, `ImportException`, `AttendanceRepository.saveAll`, `import_log_tbl` | 파일 읽기, 스트림 파싱, **JDBC 트랜잭션**, REPLACE, (선택) executeBatch |
+| **B (YY) — 출결 + 규칙** | 출결 수동 입력(출석·결석), 상태 판정, **출석률·미입력 계산**, 중복 입력 처리 | `Attendance`, `AttendanceStatus`, `AttendanceRule` + **JUnit 테스트**, `AttendanceRepository.save` | enum, 순수 로직 + 단위 테스트, UNIQUE 위반 예외 구분 |
+| **C (YI) — 캘린더 + 통계 + 통합** | 과정 설정, 수업일 생성, **리스크 화면**, 반 전체 현황, **관리자 권한 확인**, `Application` 메뉴 통합 | `Course`, `ClassDayRepository`, `MonthlySummary`, `v_monthly_attendance` 뷰, `AttendanceRepository.findMembersWithoutRecord`, `AttendanceView`, `run.Application` | java.time 평일 생성, VIEW, GROUP BY/HAVING, SUM(CASE), **LEFT JOIN + IS NULL**, INDEX + EXPLAIN |
 
-> A·B·C가 `AttendanceRepository`와 `attendance-query.xml`을 함께 건드린다. 메서드가 안 겹치면 git이 합치고, 겹치면 **첫 충돌 해결 연습**. B가 먼저 `AttendanceRepository` 파일과 `save`를 만들고 머지하면 충돌이 줄어든다.
-
-### 0단계 — 함께 먼저 (각자 이슈 1개, 전체 흐름을 한 번씩 연습)
-
-| 이슈 | 담당 | 내용 | 라벨 |
-| --- | --- | --- | --- |
-| #1 | A | 패키지 `skeleton` → `com.latecatcher.app` 변경 (repository의 `QUERY_FILE` 경로 포함, 9절), `build.gradle` mainClass 수정, **`build.gradle`·Gradle 래퍼를 수업 버전(Java 21, Gradle 9.6.0, Lombok 설정)으로 맞춤 (12절)**, `MemberRepository.save` 문법 오류 수정, `db.properties.example`, `data/` gitignore | `🌏 Environment` `config` |
-| #2 | B | `resources/db/schema.sql` (7절) + `insert.sql` (팀 3명 — C만 `role = 'ADMIN'`, 10월 수업일, 샘플 출결), `model/Attendance`, `AttendanceStatus`, `Course` | `🌏 Environment` `sql` `model` |
-| #3 | C | 이슈 템플릿 정리 (파일명 오타 `TAMPLATE`, 라벨 `enhancement` → `✨ Feature`, bug/refactor/environment/suggestion 추가 — PR 템플릿은 정본이므로 그대로), 라벨 생성, main 브랜치 보호(approve 2), README 초안, `Application` 메뉴 뼈대("준비 중") | `🌏 Environment` `run` `docs` |
-
-model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드 이름을 먼저 합의**해야 한다. 7절 스키마가 기준.
+> A·B·C가 `AttendanceRepository`와 `attendance-query.xml`을 함께 건드린다. 0-C에서 메서드 자리를 TODO로 미리 만들어 두면, 각자 자기 메서드 본문만 채우므로 충돌이 줄어든다.
 
 ### 흐름
 
 ```text
-0단계 (3 PR) ─┬─ A: 출결 가져오기 ──────┐
-              ├─ B: 출결 입력·판정·계산 ─┼─ C: 메뉴 통합 ─ [v0.1] ─ v0.2 (공휴일 API, 디스코드 알림 검토: 이슈로 나눠 각자) ─ [v0.2]
-              └─ C: 캘린더·통계 ─────────┘
+0단계 ─┬─ 0-A 문서 구조 (A) ──────────────┐
+       ├─ 0-B ERD 합의 → 물리 DB (B 주도) ─┼─ 기능 구현 (15절) ─ 메뉴 통합 ─ [v0.1] ─ v0.2 (공휴일 API → 디스코드 알림 검토) ─ [v0.2]
+       └─ 0-C 코드 구조·TODO (C) ──────────┘
 ```
 
-- 기능 1개 = 이슈 1개 = 브랜치 1개 = PR 1개. 크면 쪼갠다 (A: "파일 읽기·미리보기" / "트랜잭션 저장" 2개로).
+- 기능 1개 = 이슈 1개 = 브랜치 1개 = PR 1개. 크면 쪼갠다 (예: L-06 "파일 읽기·미리보기" / "트랜잭션 저장").
 - 매일 10분 모여 열린 PR을 함께 보고 approve. 3명이라 approve 2 = **나머지 둘이 모두 봐야 머지**.
 
 ---
 
 ## 12. 기술 선택
 
-**원칙: 기술과 버전은 수업에서 쓴 것을 그대로 따른다.** 기준은 `03_jdbc`의 `05-JDBC`, `06-JDBC-Exercise` 프로젝트 설정이다. 스켈레톤이 수업과 다르면 수업에 맞춰 고친다 (0단계 #1).
+**원칙: 기술과 버전은 수업에서 쓴 것을 그대로 따른다.** 기준은 `03_jdbc`의 `05-JDBC`, `06-JDBC-Exercise` 프로젝트 설정이다. 스켈레톤이 수업과 다르면 수업에 맞춰 고친다 (0단계 0-C).
 
 | 항목 | 수업 | 스켈레톤 (현재) | 프로젝트 |
 | --- | --- | --- | --- |
@@ -741,6 +789,7 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 - [ ] 수동 입력한 날짜를 고용24 표로 가져오면 그날 기록이 **고용24 값으로 바뀐다**
 - [ ] 고용24 **페이지 전체**를 복사한 파일과 **출결 표만** 복사한 파일을 가져온 결과가 같다
 - [ ] 훈련생 계정에는 과정 설정 메뉴가 보이지 않고, 번호를 직접 넣어도 "관리자만 쓸 수 있습니다"가 나온다. C의 관리자 계정으로는 쓸 수 있다
+- [ ] 세 명이 각자 그린 ERD 초안을 종합한 **합의 ERD**(`docs/erd.md`)가 세 명 동의로 머지되고, `schema.sql`이 그 ERD와 같다
 - [ ] 반 전체 현황에서 80% 미달자가 HAVING으로 걸러져 나온다
 - [ ] 그 달 기록이 없는 훈련생은 순위·미달 명단에서 빠지고 "기록 없음"에 따로 나온다. 결석을 입력한 훈련생은 미달 명단에 그대로 나온다
 - [ ] `AttendanceRuleTest` 가 통과한다 (경계값: 지각 2회/3회, 79.9%/80.0%, 공결 처리, **퇴실 기록 없는 오늘 줄은 계산에서 빠짐**, **기록 없는 날은 분모에서 빠지고 미입력으로 세어짐**, 기록 0일이면 계산하지 않음)
@@ -755,7 +804,7 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 2. ~~**고용24 출결현황 화면의 실제 열** — 첫 데이터를 받아 보고 8절 형식 확정~~ → **결정: 세부내역 표 6열 그대로, 복사한 텍스트를 탭으로 읽는다** ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전), `data/sample.txt`)
 3. ~~Java 17 유지 vs 21로 통일~~ → **결정: 수업과 같은 Java 21** ([12절](#12-기술-선택))
 4. ~~`Member.age` 유지 여부~~ → **결정: 삭제.** 로그인은 아이디·비밀번호, 휴대폰 번호는 선택 입력 ([4절](#4-기능), [7절](#7-데이터-설계))
-5. A/B/C 담당자
+5. ~~A/B/C 담당자~~ → **결정: A = RY (문서 구조), B = YY (데이터 설계), C = YI (코드 구조)** ([11절](#11-팀-구성과-역할-분담-3명)). 기능·문서 내용 분담은 15절에서 다시 정한다
 6. ~~머지 방식 merge commit vs squash~~ → **결정: Merge commit.** 각 커밋 메시지가 `main` 히스토리에 그대로 남는 방식 ([CONVENTION 5절](CONVENTION.md#5-pr-rule))
 7. ~~v0.2에서 공휴일 API와 디스코드 알림 중 무엇을 먼저 할지~~ → **결정: 공휴일 API(L-13) 먼저**, 디스코드 알림(L-14)은 그다음 (메신저로 출결을 **받는** 기능은 향후 확장 L-15)
 8. ~~**과정 설정(L-03)·수업일 캘린더(L-04)를 누가 실행하나**~~ → **결정: 관리자 계정을 둔다.** `member_tbl.role`(`ADMIN`/`TRAINEE`)로 구분하고, 회원가입은 항상 `TRAINEE`다. 관리자-훈련생 기능을 실습하기 위해 **v0.1에서는 과정 설정 구현자인 C만 관리자**, A·B는 훈련생으로 둔다. C의 관리자 지정은 `insert.sql`에서 한다. 나중에는 팀 3명 모두 관리자로 바꾼다 (`UPDATE member_tbl SET role = 'ADMIN' WHERE login_id IN (…)`) ([4절 유스케이스](#유스케이스))
@@ -764,70 +813,38 @@ model을 0단계에 두는 이유: 셋 모두 `Attendance`를 쓰므로 **필드
 
 ## 15. 업무 분담 — 기능 + 문서 (v0.1)
 
-[4절](#4-기능)의 기능과 노션 문서 작업을 함께 묶어 세 사람의 업무량이 비슷하도록 나눈다.
+[4절](#4-기능)의 기능과 문서 작업을 함께 묶어 세 사람의 업무량이 비슷하도록 나눈다.
 시간은 현재 코드 상태와 이 문서를 보고 잡은 **추정치**다. 이슈를 만들 때 각자 예상 시간을 다시 적고, 합계가 크게 어긋나면 이 표를 고친다.
 
-### A — 훈련생 + 출결 가져오기 + 캘린더 (약 18h)
+### 담당자 — 확정
 
-| 작업 | 예상 시간 |
-| --- | --- |
-| 0단계 #1: 패키지 이름 `com.latecatcher.app`으로 변경 (`QUERY_FILE` 경로 포함), mainClass 수정, 빌드 설정 수업 버전으로 맞춤 (Java 21, Gradle 9.6.0), `MemberRepository` 문법 오류 수정, `db.properties.example` | 1.5h |
-| L-01·L-02 아이디·비밀번호 회원가입·로그인으로 변경 (비밀번호 해시, 스켈레톤 로그인 버그 수정 포함) | 3h |
-| L-10 로그아웃, L-11 회원 탈퇴 마무리 | 1h |
-| L-06 출결 가져오기 | 6h |
-| L-04 수업일 캘린더 | 3h |
-| 노션 **요구사항 명세** 페이지 (기능 명세) | 2h |
-| 노션 모델링 페이지 — **properties 파일** | 1h |
-| 노션 **팀 R&R**, ⭐**Ground Rule** 페이지 | 1.5h |
-
-### B — 출결 + 규칙 (약 15h)
-
-| 작업 | 예상 시간 |
-| --- | --- |
-| 0단계 #2: `schema.sql`, `insert.sql`, `Attendance`, `AttendanceStatus`, `Course` | 3h |
-| L-05 출결 입력(출석·결석) + 상태 판정 (`AttendanceRule`) + JUnit | 5h |
-| 출석률·환산 결석·미입력 일수 계산 (`AttendanceRule`, 기록 있는 날 기준) + JUnit | 3h |
-| 노션 모델링 페이지 — **테이블 정의서** | 2h |
-| **ERD** | 1.5h |
-| 노션 **데일리 스크럼** 페이지 (템플릿) | 0.5h |
-
-### C — 설정 + 화면 + 통합 (약 18h)
-
-| 작업 | 예상 시간 |
-| --- | --- |
-| 0단계 #3: 이슈 템플릿, 라벨, 브랜치 보호, `Application` 메뉴 뼈대 | 2.5h |
-| L-03 과정 설정 | 3h |
-| 관리자 구분 — `Role` enum, 관리자 메뉴 노출, 컨트롤러 권한 확인 | 1h |
-| L-08 내 출결 리스크 | 4h |
-| L-09 반 전체 현황 | 3h |
-| L-12 프로그램 종료 + 메뉴 통합 | 2h |
-| README 마무리 | 1h |
-| 노션 **프로젝트 소개** 페이지 (아이디어 → 기능) | 1.5h |
-
-### 나눈 기준
-
-- **기능은 세로로 나눈다.** 한 사람이 한 기능을 model → repository → controller → view까지 만든다 ([11절](#11-팀-구성과-역할-분담-3명) 원칙).
-- **문서는 자기가 만드는 코드와 맞물리게 맡는다.** 스키마를 만드는 B가 테이블 정의서와 ERD를 함께 맡아 둘이 스키마와 어긋나지 않게 한다. 설정 파일을 다루는 A가 properties 설명을, 전체 흐름을 묶는 C가 프로젝트 소개를 쓴다.
-- **11절과 다른 점이 두 가지 있다.**
-  - L-04 수업일 캘린더를 C에서 A로 옮겼다. A의 회원 기능은 대부분 main에 머지돼 여유가 있고, C는 기능 수가 가장 많다.
-  - 출석률·환산 결석 계산을 B가 맡는다고 명시했다. 판정 규칙과 같은 `AttendanceRule`에 있으므로 B가 테스트까지 만들고, C의 L-08·L-09는 그 결과를 화면에 보여 주기만 한다.
-
-### 진행 순서
-
-C의 L-08·L-09와 메뉴 통합은 A·B의 결과가 있어야 확인할 수 있다. 대기 시간을 줄이려고 다음 순서로 간다.
-
-1. B가 `AttendanceRule`(판정 + 출석률 계산)을 먼저 머지한다.
-2. 그동안 C는 L-03 과정 설정과 노션 프로젝트 소개 페이지를 한다.
-3. A·B 기능이 머지되면 C가 L-08·L-09와 메뉴 통합을 한다.
-
-### 담당자 제안 (14절 5번이 정해지면 고친다)
-
-스켈레톤에서 다뤄 본 코드와 가장 비슷한 일을 맡는 방식이다.
-
-| 역할 | 제안 | 이유 |
+| 역할 | 팀원 | 0단계 기반 책임 ([11절](#11-팀-구성과-역할-분담-3명)) |
 | --- | --- | --- |
-| A | RY | 스켈레톤 회원 기능(F-01, F-02, F-09, F-10) 담당 |
-| B | YY | 스켈레톤 구독 추가·연장·삭제(F-04, F-06, F-07) 담당 — 쓰기와 갱신 |
-| C | YI | 스켈레톤 조회 기능(F-03, F-05, F-08) 담당 — 조회와 출력 |
+| A | **RY** | 문서 구조 — 노션 페이지 트리, README 목차 |
+| B | **YY** | 데이터 설계 — ERD 종합·합의, `schema.sql`·`insert.sql` |
+| C | **YI** | 코드 구조 — 빌드 설정, 패키지, 파일 뼈대·주석·TODO |
 
-> 데일리 스크럼 페이지는 템플릿 작성만 B의 시간에 넣었다. 매일 진행은 돌아가며 맡는다.
+### 0단계 예상 시간
+
+| 작업 | 담당 | 예상 시간 |
+| --- | --- | --- |
+| 0-A 노션 페이지 트리 + README 목차 | A | 2h |
+| 0-B ① ERD 초안 (각자) | A·B·C 각 1h | 3h |
+| 0-B ②③ 종합 + AI 상담 기록 | B | 2h |
+| 0-B ④ 합의 회의 + `docs/erd.md` PR | B 주도, 회의는 셋 (각 1h) | 3h |
+| 0-B ⑤ `schema.sql` + `insert.sql` | B | 3h |
+| 0-C ①② 빌드 설정 + 패키지 이름 + 스켈레톤 컴파일 오류 | C | 1.5h |
+| 0-C ③~⑦ 파일 뼈대·주석·TODO, mapper 키, 메뉴 뼈대, `db.properties.example` | C | 4h |
+
+0단계 합계(사람별, 공동 작업 포함): **A 약 4h, B 약 7h, C 약 7.5h**. 이 차이는 기능·문서 내용 분담에서 맞춘다. 0단계는 10/22 하루에 끝낸다 ([SCHEDULE.md](SCHEDULE.md)).
+
+### 기능·문서 내용 분담 — 다시 제안 예정
+
+0단계 기반 책임과 각자의 비중을 반영한 업무 분장 **초안은 [SCHEDULE.md 담당 (초안)](SCHEDULE.md#담당-초안)** 에 있다. 팀이 확정하면 이 절을 고친다. 다시 나눌 대상은 다음과 같다.
+
+- 기능: L-01·L-02 아이디·비밀번호 로그인, L-03 과정 설정 + 관리자 구분, L-04 수업일 캘린더, L-05 출결 입력, 출석률·미입력 계산(`AttendanceRule`), L-06 출결 가져오기, L-08 내 출결 리스크, L-09 반 전체 현황, L-10·L-11 로그아웃·탈퇴, L-12 종료 + 메뉴 통합
+- 문서 내용: 노션 요구사항 명세, 테이블 정의서, properties 설명, 팀 R&R·⭐Ground Rule, 프로젝트 소개, 데일리 스크럼 템플릿, README 각 절
+
+참고로 0단계 이전의 기능 분담은 [11절 기능 분담](#기능-분담) 표에 남아 있다.
+
+> 데일리 스크럼은 매일 돌아가며 진행한다.
