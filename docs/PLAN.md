@@ -83,7 +83,7 @@
 
 | 번호 | 기능명 | 영문 이름(브랜치) | 입력 | 핵심 동작 | 스켈레톤 | 담당 |
 | --- | --- | --- | --- | --- | --- | --- |
-| L-01 | 회원가입 | `sign-up` | 아이디, 비밀번호, 비밀번호 확인, 이름, 휴대폰 번호(선택) | 빈 값을 검사하고, 아이디 중복과 비밀번호 확인 일치를 확인한 뒤 비밀번호를 **해시로 바꿔** 훈련생을 등록한다. 휴대폰 번호는 비워도 된다. | F-01 변형: 휴대폰 번호 → 아이디·비밀번호, 나이 삭제 | A |
+| L-01 | 회원가입 | `sign-up` | 아이디, 비밀번호, 비밀번호 확인, 이름, 휴대폰 번호(선택) | 빈 값을 검사하고, 아이디 중복과 비밀번호 확인 일치를 확인한 뒤 비밀번호를 **해시로 바꿔** 훈련생을 등록한다. 이름을 물을 때 **"성과 이름을 띄어쓰기 없이 입력해 주세요"** 를 안내한다. 휴대폰 번호는 비워도 되지만, 입력하면 **`010-1234-5678` 형식**이어야 한다 (DB `CHECK`와 같은 정규식으로 Java가 먼저 확인). 회원은 과정(`course_id`)으로 등록한다. v0.1은 과정이 1행뿐이라 그 과정으로 자동 등록하고 묻지 않는다. | F-01 변형: 휴대폰 번호 → 아이디·비밀번호, 나이 삭제 | A |
 | L-02 | 로그인 | `id-login` | 아이디, 비밀번호 | 아이디로 훈련생을 조회하고 비밀번호 해시가 같으면 로그인 상태로 보관한다. | F-02 변형: 휴대폰 번호 조회 → 아이디 조회 + 비밀번호 확인 | A |
 | L-03 | 과정 설정 | `course-setting` | 과정명, 훈련 시작·종료일, 수업 시작·종료 시각, 규칙 수치 | `course_tbl`에 과정 1행을 저장하거나 수정한다. 규칙 수치는 3절의 설정 컬럼이다. v0.1에서는 **권한 없이 모든 훈련생**이 쓴다. | 신규 | C |
 | L-04 | 수업일 캘린더 | `class-calendar` | (생성) 없음 / (휴일 등록) 날짜, 메모 | 훈련 기간의 평일을 `class_day_tbl`에 **한 트랜잭션으로** 생성한다 (하나라도 실패하면 전부 롤백 — v0.1의 트랜잭션 실습). 공휴일·휴강일은 수동으로 수업일에서 뺀다. v0.1에서는 **권한 없이 모든 훈련생**이 쓴다. | 신규 | A |
@@ -253,12 +253,12 @@ flowchart LR
 
 | 번호 | 액터 | 사전 조건 | 성공 결과 | 주요 예외 |
 | --- | --- | --- | --- | --- |
-| L-01 회원가입 | 방문자 | — | 훈련생 1행 생성 (비밀번호는 솔트 + 해시로 저장) | 빈 값, 아이디 중복, 비밀번호 확인 불일치 → 안내 후 재입력. 휴대폰 번호는 빈 값 허용 |
+| L-01 회원가입 | 방문자 | 과정 1행이 있다 (`insert.sql`) | 훈련생 1행 생성 (비밀번호는 솔트 + 해시로 저장, 과정은 그 1행) | 과정이 없다 → "과정이 아직 없습니다" 후 시작 메뉴로. 빈 값, 아이디 중복, 비밀번호 확인 불일치, 휴대폰 번호 형식 불일치(`010-1234-5678`이 아님) → 안내 후 재입력. 휴대폰 번호는 빈 값 허용. 이름 입력 안내: "성과 이름을 띄어쓰기 없이 입력해 주세요" |
 | L-02 로그인 | 방문자 | 회원가입했다 | 로그인 상태 보관, 출결 메뉴로 | 없는 아이디 또는 틀린 비밀번호 → "아이디 또는 비밀번호가 맞지 않습니다" (어느 쪽이 틀렸는지 알려 주지 않는다) |
 | L-03 과정 설정 | 훈련생 | 로그인 | `course_tbl` 1행 저장·수정 | 종료일이 시작일보다 빠름, 시각 형식 오류 |
 | L-04 수업일 캘린더 | 훈련생 | 로그인, 과정 설정 | 훈련 기간 평일을 **한 트랜잭션으로** 생성, 휴일 등록 시 수업일에서 제외 | 이미 생성됨 → 다시 만들지 않음. 생성 중 실패 → **전부 롤백**하고 "0일 생성" |
 | L-10 로그아웃 | 훈련생 | 로그인 | 로그인 정보 제거, 시작 메뉴로 | — |
-| L-11 회원 탈퇴 | 훈련생 | 로그인 | 출결 기록과 회원 정보 삭제(FK CASCADE), 시작 메뉴로 | 확인에서 `n` → 취소 |
+| L-11 회원 탈퇴 | 훈련생 | 로그인 | 출결 기록, 가져오기 기록(v0.2), 회원 정보 삭제(FK CASCADE), 시작 메뉴로 | 확인에서 `n` → 취소 |
 | L-12 프로그램 종료 | 방문자, 훈련생 | — | 프로그램 종료 | — |
 
 ---
@@ -285,7 +285,7 @@ flowchart LR
 
 | 배운 것 | 출처 | 이 프로젝트에서 |
 | --- | --- | --- |
-| DDL + 제약조건 (PK/FK/UNIQUE/CHECK/DEFAULT/ENUM) | `04_DDL/01_DDL`, `02.Constraint` | `attendance_tbl`의 `UNIQUE(member_id, attend_date)` = "하루 한 기록", `CHECK (check_out >= check_in)`, `ENUM` 상태 |
+| DDL + 제약조건 (PK/FK/UNIQUE/CHECK/DEFAULT/ENUM) | `04_DDL/01_DDL`, `02.Constraint` | `attendance_tbl`의 `UNIQUE(member_id, attend_date)` = "하루 한 기록", `CHECK (check_out >= check_in)`, `CHECK (phone REGEXP '^010-[0-9]{4}-[0-9]{4}$')` = 전화번호 형식, `ENUM` 상태 |
 | JOIN (INNER / LEFT) | `01_DQL/07_JOIN` | **LEFT JOIN + IS NULL** 로 "그 달 기록이 하나도 없는 훈련생" = 반 전체 현황의 '기록 없음' 명단 (L-09) |
 | GROUP BY / HAVING | `01_DQL/08_GroupByHaving` | 훈련생·월별 상태 개수; **HAVING** 으로 80% 미달자만 |
 | 내장 함수 | `01_DQL/06_Built_In_Function` | `SUM(CASE WHEN status='LATE' THEN 1 END)`, `DATE_FORMAT(attend_date,'%Y-%m')`, `COUNT`, `FLOOR` |
@@ -319,7 +319,7 @@ flowchart LR
 
 | 스켈레톤 (OTT 구독관리) | 지각 잡는 자바 | 바뀌는 것 |
 | --- | --- | --- |
-| `model.Member` (memberId, name, age, phone) | `model.Member` (memberId, loginId, passwordHash, passwordSalt, name, phone) | 훈련생. **age 삭제**, 로그인용 필드 추가, phone은 선택(`null` 가능). `role` 열은 스키마에 있지만(기본값 `TRAINEE`) v0.1 코드는 쓰지 않는다. `role` 필드와 `Role` enum은 v0.2(L-16) |
+| `model.Member` (memberId, name, age, phone) | `model.Member` (memberId, loginId, passwordHash, passwordSalt, name, phone, courseId) | 훈련생. **age 삭제**, 로그인용 필드와 과정(`courseId`) 추가, phone은 선택(`null` 가능). `role` 열은 스키마에 있지만(기본값 `TRAINEE`) v0.1 코드는 쓰지 않는다. `role` 필드와 `Role` enum은 v0.2(L-16) |
 | `model.Membership` (ottType, planName, enrollDate, expiryDate, active) | `model.Attendance` (attendanceId, memberId, attendDate, checkIn, checkOut, status, memo, source) | 구독 1건 → 출결 1건. `LocalDateTime` 2개 → `LocalDate` + `LocalTime` 2개 |
 | — | `model.AttendanceStatus` (enum) | `PRESENT, LATE, EARLY_LEAVE, OUTING, ABSENT, EXCUSED` |
 | — | `model.Course` | 과정 설정 1행 |
@@ -339,28 +339,19 @@ flowchart LR
 
 ## 7. 데이터 설계
 
-스켈레톤 스키마 스타일(`_tbl` 접미사, 이름 붙인 제약조건) 유지.
+스켈레톤 스키마 스타일(`_tbl` 접미사, 이름 붙인 제약조건) 유지. 단 PK는 이름을 붙이지 않는다. MySQL에서 PK 이름은 항상 `PRIMARY`로 고정되어 붙여도 무시되기 때문이다.
 
 **스키마는 확장을 고려해 만든다.** v0.2 기능(L-06 출결 가져오기, L-16 관리자 권한)에 쓸 열과 테이블도 **MVP 구현을 막지 않으면 v0.1 스키마에 미리 둔다.** 아래의 `role`, `source`, `import_log_tbl`이 그렇다. 셋 다 기본값이 있거나 v0.1 코드가 건드리지 않으므로, v0.1 코드는 이 열과 테이블을 몰라도 된다. 그래야 v0.2에서 `ALTER TABLE` 없이 기능만 붙일 수 있다.
+
+**과정은 회원이 가리킨다.** `member_tbl.course_id` → `course_tbl` (회원 N : 과정 1). 출결은 회원을 거쳐 과정을 안다. 출결에 `course_id`를 또 두면 3NF가 깨지므로 두지 않는다. v0.1은 과정이 1행뿐이다. `insert.sql`이 과정 1행을 회원보다 먼저 넣고, 회원가입(L-01)은 그 과정으로 등록한다. 회원이 여러 과정을 듣게 되면 과정별 수업일과 출결의 과정이 필요해진다 ([erd.md 8절](erd.md#8-합의-때-볼-점)).
+
+자유 입력 메모 열(`class_day_tbl.note`, `attendance_tbl.memo`)은 **`VARCHAR(255)`로 통일**한다. 관계, 식별·비식별 구분, 정규화(3NF) 점검은 [erd.md](erd.md)에 있다.
 
 ```sql
 CREATE DATABASE IF NOT EXISTS latedb DEFAULT CHARACTER SET utf8mb4;
 USE latedb;
 
-CREATE TABLE member_tbl (                           -- 스켈레톤 변형: 아이디·비밀번호 로그인, age 삭제
-    member_id     INT AUTO_INCREMENT,
-    login_id      VARCHAR(20) NOT NULL,
-    password_hash CHAR(64)    NOT NULL,                 -- SHA-256(솔트 + 비밀번호), 16진수 64자
-    password_salt CHAR(32)    NOT NULL,                 -- 회원마다 다른 16바이트 난수, 16진수 32자
-    name          VARCHAR(30) NOT NULL,
-    phone         VARCHAR(20) NULL,                     -- 선택 입력
-    role          ENUM('ADMIN','TRAINEE') NOT NULL DEFAULT 'TRAINEE',  -- v0.2 권한(L-16)용. v0.1 코드는 쓰지 않는다
-    CONSTRAINT pk_member_tbl PRIMARY KEY (member_id),
-    CONSTRAINT uq_member_tbl_login_id UNIQUE (login_id),
-    CONSTRAINT uq_member_tbl_phone UNIQUE (phone)       -- NULL은 여러 행이어도 된다
-);
-
-CREATE TABLE course_tbl (                           -- 과정 설정, 1행만 사용
+CREATE TABLE course_tbl (                           -- 과정. v0.1은 1행만 쓴다. 회원이 course_id로 가리킨다
     course_id             INT AUTO_INCREMENT,
     name                  VARCHAR(100) NOT NULL,
     start_date            DATE NOT NULL,
@@ -370,15 +361,31 @@ CREATE TABLE course_tbl (                           -- 과정 설정, 1행만 �
     partial_per_absence   INT  NOT NULL DEFAULT 3,   -- 지각·조퇴·외출 n회 = 결석 1일
     allowance_threshold   INT  NOT NULL DEFAULT 80,  -- 장려금 기준 %
     completion_threshold  INT  NOT NULL DEFAULT 80,  -- 수료 기준 %
-    CONSTRAINT pk_course_tbl PRIMARY KEY (course_id),
+    PRIMARY KEY (course_id),
     CONSTRAINT ck_course_tbl_period CHECK (end_date >= start_date)
+);
+
+CREATE TABLE member_tbl (                           -- 스켈레톤 변형: 아이디·비밀번호 로그인, age 삭제
+    member_id     INT AUTO_INCREMENT,
+    login_id      VARCHAR(20) NOT NULL,
+    password_hash CHAR(64)    NOT NULL,                 -- SHA-256(솔트 + 비밀번호), 16진수 64자
+    password_salt CHAR(32)    NOT NULL,                 -- 회원마다 다른 16바이트 난수, 16진수 32자
+    name          VARCHAR(30) NOT NULL,                 -- 성과 이름을 띄어쓰기 없이 (예: 홍길동)
+    phone         VARCHAR(20) NULL,                     -- 선택 입력, 010-1234-5678 형식
+    role          ENUM('ADMIN','TRAINEE') NOT NULL DEFAULT 'TRAINEE',  -- v0.2 권한(L-16)용. v0.1 코드는 쓰지 않는다
+    course_id     INT         NOT NULL,                 -- 듣는 과정. 출결의 과정도 이것으로 안다
+    PRIMARY KEY (member_id),
+    CONSTRAINT fk_member_tbl_course_tbl FOREIGN KEY (course_id) REFERENCES course_tbl (course_id),
+    CONSTRAINT uq_member_tbl_login_id UNIQUE (login_id),
+    CONSTRAINT uq_member_tbl_phone UNIQUE (phone),      -- NULL은 여러 행이어도 된다
+    CONSTRAINT ck_member_tbl_phone CHECK (phone IS NULL OR phone REGEXP '^010-[0-9]{4}-[0-9]{4}$')
 );
 
 CREATE TABLE class_day_tbl (                        -- 수업일 캘린더
     class_date   DATE NOT NULL,
     is_class_day BOOLEAN NOT NULL DEFAULT TRUE,     -- FALSE = 공휴일/휴강
-    note         VARCHAR(50),                       -- '개천절', '휴강'
-    CONSTRAINT pk_class_day_tbl PRIMARY KEY (class_date)
+    note         VARCHAR(255),                      -- '개천절', '휴강'
+    PRIMARY KEY (class_date)
 );
 
 CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1명의 하루
@@ -388,9 +395,9 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
     check_in      TIME,
     check_out     TIME,
     status        ENUM('PRESENT','LATE','EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,
-    memo          VARCHAR(200),
+    memo          VARCHAR(255),
     source        ENUM('MANUAL','WORK24') NOT NULL DEFAULT 'MANUAL',  -- v0.2 가져오기(L-06)용. v0.1은 항상 MANUAL
-    CONSTRAINT pk_attendance_tbl PRIMARY KEY (attendance_id),
+    PRIMARY KEY (attendance_id),
     CONSTRAINT fk_attendance_tbl_member_tbl FOREIGN KEY (member_id)
         REFERENCES member_tbl (member_id) ON DELETE CASCADE,
     CONSTRAINT fk_attendance_tbl_class_day_tbl FOREIGN KEY (attend_date)
@@ -408,8 +415,9 @@ CREATE TABLE import_log_tbl (                       -- 출결 가져오기 기�
     row_count   INT NOT NULL,
     imported_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     imported_by INT,
-    CONSTRAINT pk_import_log_tbl PRIMARY KEY (import_id),
-    CONSTRAINT fk_import_log_tbl_member_tbl FOREIGN KEY (imported_by) REFERENCES member_tbl (member_id)
+    PRIMARY KEY (import_id),
+    CONSTRAINT fk_import_log_tbl_member_tbl FOREIGN KEY (imported_by)
+        REFERENCES member_tbl (member_id) ON DELETE CASCADE   -- 탈퇴(L-11)하면 가져오기 기록도 지운다
 );
 
 -- 월별 집계 뷰: SQL은 세기만 하고, 출석률 계산은 Java(AttendanceRule)가 한다
@@ -702,7 +710,7 @@ v0.1에는 권한 구분이 없어 모든 훈련생에게 같은 메뉴가 보�
 2. **B가 종합한다.** 세 초안의 차이(테이블, 컬럼, 타입, 키, 관계, NULL 허용, 제약)를 표로 정리한다.
 3. **B가 AI에게 상담한다.** 차이가 난 지점마다 정규화, 키 선택, 제약을 물어보고, 질문과 답의 요지를 노션에 남긴다. AI 답은 근거로만 쓰고 결정은 팀이 한다.
 4. **세 명이 합의한다.** 회의에서 차이점을 하나씩 정한다. 합의본을 `docs/erd.md`(Mermaid)로 PR을 올리고, **작성자 B + approve 2 = 세 명 모두 동의**로 머지한다. 7절과 다른 점이 있으면 같은 PR에서 7절을 고친다.
-5. **B가 물리 DB를 만든다.** 합의 ERD대로 `resources/db/schema.sql`(DDL, 스켈레톤 제약 이름 규칙)과 `insert.sql`(팀 3명 계정, 과정 1행, 훈련 기간 수업일, 샘플 출결)을 쓴다. 테이블 정의서(노션)는 합의 ERD에서 만든다.
+5. **B가 물리 DB를 만든다.** 합의 ERD대로 `resources/db/schema.sql`(DDL, 스켈레톤 제약 이름 규칙)과 `insert.sql`(과정 1행 → 팀 3명 계정 → 훈련 기간 수업일 → 샘플 출결 순서. 회원이 과정을 FK로 가리키므로 과정이 먼저)을 쓴다. 테이블 정의서(노션)는 합의 ERD에서 만든다.
 
 #### C의 주석·TODO 규칙 (0-C)
 
