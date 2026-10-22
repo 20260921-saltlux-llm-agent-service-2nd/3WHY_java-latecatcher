@@ -17,7 +17,7 @@
 
 - 우리는 매일 고용24 앱으로 QR 출결을 찍는다. 출석률에 **훈련장려금과 수료**가 걸려 있다.
 - 그런데 "지각 2번 + 결석 1번이면 이번 달 출석률이 몇 %지?"를 바로 알려 주는 화면은 없다. 규칙이 머릿속 암산이다.
-- 고용24는 개인 출결을 외부로 내보내는 API가 없다 (확인함). 그래서 **데이터는 손으로 넣거나 고용24 화면의 표를 복사해 가져오고, 규칙은 코드가 계산**한다. 고용24에는 출결 파일 내려받기도 없다 (8절).
+- 고용24는 개인 출결을 외부로 내보내는 API가 없다 (확인함). 그래서 **데이터는 손으로 넣고(v0.1) 고용24 화면의 표를 복사해 가져오며(v0.2), 규칙은 코드가 계산**한다. 고용24에는 출결 파일 내려받기도 없다 (8절).
 - 사용자는 우리 팀 3명에서 시작해 반 전체로 넓힐 수 있다. **만드는 동안 실제로 쓴다.**
 
 ### 사용 장면
@@ -75,29 +75,33 @@
 
 스켈레톤 기능 목록(F-01 ~ F-11)과 같은 형식으로 정리한다. 번호는 스켈레톤 이슈와 헷갈리지 않게 `L-`를 붙인다.
 **스켈레톤** 컬럼은 대응하는 스켈레톤 기능과 활용 방식이다. 클래스 단위 변환은 [6절](#6-스켈레톤--지각-잡는-자바-변환표)을 본다.
-**담당**은 [11절](#11-팀-구성과-역할-분담-3명)의 A·B·C이다.
+**담당**은 [11절](#11-팀-구성과-역할-분담-3명)의 A·B·C이며, **10/22 11:30 회의에서 확정하기 전까지 초안**이다.
 
-### v0.1 — 핵심 (1. 규칙 + 2. 출결 가져오기)
+**v0.1은 MVP다.** 출결 규칙과 수동 입력만으로 "몇 번 더 늦으면 위험한가"를 보여 주는 데 집중한다. 고용24 표 가져오기(L-06)와 권한 구분(L-16)은 v0.2로 미룬다 ([14절](#14-열린-질문-정해지면-이-문서를-고친다) 8·9번).
+
+### v0.1 — MVP (출결 규칙 + 수동 입력)
 
 | 번호 | 기능명 | 영문 이름(브랜치) | 입력 | 핵심 동작 | 스켈레톤 | 담당 |
 | --- | --- | --- | --- | --- | --- | --- |
 | L-01 | 회원가입 | `sign-up` | 아이디, 비밀번호, 비밀번호 확인, 이름, 휴대폰 번호(선택) | 빈 값을 검사하고, 아이디 중복과 비밀번호 확인 일치를 확인한 뒤 비밀번호를 **해시로 바꿔** 훈련생을 등록한다. 휴대폰 번호는 비워도 된다. | F-01 변형: 휴대폰 번호 → 아이디·비밀번호, 나이 삭제 | A |
 | L-02 | 로그인 | `id-login` | 아이디, 비밀번호 | 아이디로 훈련생을 조회하고 비밀번호 해시가 같으면 로그인 상태로 보관한다. | F-02 변형: 휴대폰 번호 조회 → 아이디 조회 + 비밀번호 확인 | A |
-| L-03 | 과정 설정 | `course-setting` | 과정명, 훈련 시작·종료일, 수업 시작·종료 시각, 규칙 수치 | **관리자만.** `course_tbl`에 과정 1행을 저장하거나 수정한다. 규칙 수치는 3절의 설정 컬럼이다. | 신규 | C |
-| L-04 | 수업일 캘린더 | `class-calendar` | (생성) 없음 / (휴일 등록) 날짜, 메모 | **관리자만.** 훈련 기간의 평일을 `class_day_tbl`에 생성한다. 공휴일·휴강일은 수동으로 수업일에서 뺀다. | 신규 | C |
+| L-03 | 과정 설정 | `course-setting` | 과정명, 훈련 시작·종료일, 수업 시작·종료 시각, 규칙 수치 | `course_tbl`에 과정 1행을 저장하거나 수정한다. 규칙 수치는 3절의 설정 컬럼이다. v0.1에서는 **권한 없이 모든 훈련생**이 쓴다. | 신규 | C |
+| L-04 | 수업일 캘린더 | `class-calendar` | (생성) 없음 / (휴일 등록) 날짜, 메모 | 훈련 기간의 평일을 `class_day_tbl`에 **한 트랜잭션으로** 생성한다 (하나라도 실패하면 전부 롤백 — v0.1의 트랜잭션 실습). 공휴일·휴강일은 수동으로 수업일에서 뺀다. v0.1에서는 **권한 없이 모든 훈련생**이 쓴다. | 신규 | A |
 | L-05 | 출결 입력 (수동) | `attendance-checkin` | 날짜, 구분(출석/결석), 출석이면 입실·퇴실 시각 | 수업일인지 확인한다. 출석이면 입실·퇴실 시각을 둘 다 받아 과정의 시작·종료 시각으로 상태(출석/지각/조퇴)를 판정해 저장하고, 결석이면 시각 없이 `결석`으로 저장한다. 같은 날짜 중복 입력은 알려 준다. v0.1은 콘솔 입력만 받고, 나중에 메신저 입력(L-15)이 같은 저장 경로를 쓴다. | F-04 변형: 구독 추가 → 출결 추가. 만료일 계산 → 상태 판정 | B |
-| L-06 | 출결 가져오기 | `attendance-import` | 붙여 넣은 텍스트 파일 경로, 저장 확인(y/n) | 고용24 출결 화면에서 복사해 저장한 표를 읽어 미리보기를 보여 주고, 확인을 받으면 한 트랜잭션으로 저장한다. **한 줄이라도 실패하면 전체 취소**한다. 같은 날짜에 수동 입력이 있으면 **가져온 값이 최종 값**이 된다. 페이지 전체를 복사해도, 출결 표만 복사해도 같게 동작한다. | 신규 | A |
+| ~~L-06~~ | ~~출결 가져오기~~ | — | — | **v0.2로 옮겼다** (아래 v0.2 표). | — | — |
 | ~~L-07~~ | ~~결석 일괄 마감~~ | — | — | **삭제.** 결석은 L-05에서 직접 입력하고, 기록이 없는 날은 결석이 아니라 "미입력"으로 계산에서 뺀다 (3절). 다른 훈련생의 빈 날을 결석으로 채우는 문제도 함께 없어진다. 번호는 다시 쓰지 않는다. | — | — |
 | L-08 | 내 출결 리스크 | `my-risk` | 없음 (이번 달) | 로그인 훈련생의 월별 출석률과 환산 결석을 계산하고, 몇 번 더 늦으면 80% 아래로 떨어지는지 경고한다. 2절 사용 장면 화면이다. | F-03 변형: 현재 구독 조회 → 이번 달 출결 집계 | C |
-| L-09 | 반 전체 현황 | `class-status` | 조회 월 | 전체 훈련생의 월별 출석률 순위와 **80% 미달·경계(85% 이하) 명단**을 보여 준다. | 신규 | C |
+| L-09 | 반 전체 현황 | `class-status` | 조회 월 | 전체 훈련생의 월별 출석률 순위와 **80% 미달·경계(85% 이하) 명단**을 보여 준다. | 신규 | A |
 | L-10 | 로그아웃 | `logout` | 없음 | 로그인 정보를 제거하고 시작 메뉴로 돌아간다. | F-09 그대로 | A |
 | L-11 | 회원 탈퇴 | `withdraw` | 탈퇴 확인 | 훈련생의 모든 출결 기록과 회원 정보를 삭제한 후 로그인 상태를 해제한다. | F-10 변형: 구독 기록 → 출결 기록 | A |
 | L-12 | 프로그램 종료 | `exit` | 메뉴 번호 9 | 시작 메뉴 또는 출결 메뉴에서 프로그램을 종료한다. | F-11 변형: 구독 관리 메뉴 → 출결 메뉴 | C |
 
-### v0.2 — 확장 (3. 외부 데이터)
+### v0.2 — 확장 (출결 가져오기, 권한, 외부 데이터)
 
 | 번호 | 기능명 | 영문 이름(브랜치) | 입력 | 핵심 동작 | 스켈레톤 | 담당 |
 | --- | --- | --- | --- | --- | --- | --- |
+| L-06 | 출결 가져오기 | `attendance-import` | 붙여 넣은 텍스트 파일 경로, 저장 확인(y/n) | 고용24 출결 화면에서 복사해 저장한 표를 읽어 미리보기를 보여 주고, 확인을 받으면 한 트랜잭션으로 저장한다. **한 줄이라도 실패하면 전체 취소**한다. 같은 날짜에 수동 입력이 있으면 **가져온 값이 최종 값**이 된다. 페이지 전체를 복사해도, 출결 표만 복사해도 같게 동작한다. 설계는 [8절](#8-출결-가져오기--파일-업로드의-콘솔-버전). **v0.1에서 제외** — MVP에 꼭 필요하지 않은 추가 기능이다 (10/22, YI 제안). | 신규 | v0.1 후 정함 |
+| L-16 | 관리자 권한 | `admin-role` | — | v0.1 스키마에 미리 둔 `member_tbl.role`(`ADMIN`/`TRAINEE`)을 써서 과정 설정(L-03)·수업일 캘린더(L-04)를 관리자만 쓰게 한다. 메뉴에서 숨기고 컨트롤러에서도 다시 확인한다. v0.1에서는 권한 없이 모든 훈련생이 쓴다. | 신규 | v0.1 후 정함 |
 | L-13 | 공휴일 API | `holiday-api` | 연도 | 공공데이터포털 특일정보 API로 `class_day_tbl`의 공휴일을 자동 반영한다. (`HttpClient` + JSON) | 신규 | v0.1 후 이슈로 나눔 |
 | L-14 | 디스코드 알림 (검토) | `discord-notify` | 디스코드 웹훅 URL (훈련생별, 선택) | 매일 정해진 시각에 어제까지의 출석률과 경고를 훈련생 본인의 디스코드 채널로 보낸다. 웹훅은 보내기만 하므로 `HttpClient` + JSON으로 충분하다. 디스코드에서 출결을 **받는** 기능은 v0.2에서 하지 않는다 — 아래 향후 확장(L-15). | 신규 | v0.1 후 검토 |
 
@@ -110,7 +114,7 @@
 - **왜:** 출결 기록을 메신저로 받으면 이 프로그램을 고용24와 상관없는 모임 — SNS로 운영하는 스터디 그룹, 동아리 등 — 의 **출결부**로도 쓸 수 있다.
 - **v0.1에서 미리 지킬 것:** 출결 판정·저장은 `AttendanceController`(→ `AttendanceRule`, `AttendanceRepository`)에 두고, 콘솔 입력(`AttendanceView`)은 값을 받아 넘기기만 한다. 그래야 나중에 입력 채널만 붙이면 된다. **v0.1의 L-05는 지금 계획 그대로 둔다.**
 - **풀어야 할 것:** 메시지를 **받는** 봇은 디스코드 Gateway(웹소켓)나 텔레그램 폴링이 필요하고, 보통 외부 라이브러리를 쓴다. 12절의 "수업에서 배운 것만" 원칙과 부딪히므로 착수할 때 정한다. 메신저 계정과 훈련생을 잇는 방법(`member_tbl`에 메신저 ID 열 추가 등)도 그때 정한다.
-- 메신저로 넣은 기록도 수동 입력과 같은 대우를 받는다. 같은 날짜를 고용24에서 가져오면 **고용24 값이 최종**이다 ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전)).
+- 메신저로 넣은 기록도 수동 입력과 같은 대우를 받는다. 같은 날짜를 고용24에서 가져오면(v0.2, L-06) **고용24 값이 최종**이다 ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전)).
 
 ### 스켈레톤에서 가져오지 않는 기능
 
@@ -137,9 +141,9 @@
 | 액터 | 설명 |
 | --- | --- |
 | **방문자** | 로그인하지 않은 사용자. 시작 메뉴만 쓴다 |
-| **훈련생** | 로그인한 사용자. 자기 출결을 입력·가져오기·조회하고 반 전체 현황을 본다. 과정 설정·수업일 캘린더는 쓸 수 없다 |
-| **관리자** | 훈련생 기능을 모두 쓰고, 반 전체에 영향을 주는 **과정 설정(L-03)·수업일 캘린더(L-04)** 도 쓴다. `member_tbl.role = 'ADMIN'`. v0.1에서는 C 한 명, 나중에는 팀 3명 모두 (열린 질문 8) |
-| 고용24 (외부) | 마이페이지 → 훈련현황의 출결 화면. 프로그램과 직접 연결하지 않고, 파일 내려받기도 없다. 훈련생이 표를 드래그로 복사해 텍스트 파일로 저장한다 |
+| **훈련생** | 로그인한 사용자. v0.1에는 권한 구분이 없어 **출결 메뉴를 모두 쓴다** — 자기 출결 입력·조회, 반 전체 현황, 과정 설정·수업일 캘린더 |
+| 관리자 (v0.2) | 과정 설정·수업일 캘린더를 관리자만 쓰게 하는 권한 구분은 v0.2(L-16)에서 둔다 |
+| 고용24 (외부, v0.2) | 마이페이지 → 훈련현황의 출결 화면. 프로그램과 직접 연결하지 않고, 파일 내려받기도 없다. 훈련생이 표를 드래그로 복사해 텍스트 파일로 저장한다 (L-06) |
 | 공공데이터포털 · 디스코드 (외부, v0.2) | L-13, L-14에서만 쓴다. 디스코드는 알림을 받기만 한다 |
 
 #### 다이어그램 (v0.1)
@@ -148,8 +152,6 @@
 flowchart LR
     V([방문자])
     T([훈련생])
-    AD([관리자])
-    G[[고용24 출결현황]]
 
     subgraph start [시작 메뉴]
         L01(L-01 회원가입)
@@ -160,7 +162,6 @@ flowchart LR
     subgraph menu [출결 메뉴]
         subgraph record [기록]
             L05(L-05 출결 입력)
-            L06(L-06 출결 가져오기)
         end
         subgraph view [조회]
             L08(L-08 내 출결 리스크)
@@ -177,19 +178,14 @@ flowchart LR
     end
 
     V --- start
-    T --- record
-    T --- view
-    T --- account
+    T --- menu
     T --- L12
-    AD -- 훈련생 기능도 씀 --> T
-    AD --- setting
-    G -. 표 복사 → 텍스트 파일 .-> L06
 ```
 
 #### 공통 규칙
 
 - **계산 기준일은 어제다.** 출석률·환산 결석·경고는 모두 "훈련 시작일 ~ 어제"의 수업일 가운데 **기록이 있는 날**만 본다 ([3절](#3-출결-규칙-코드의-심장)).
-- **권한:** 과정 설정·수업일 캘린더는 관리자에게만 메뉴에 보이고, 컨트롤러에서도 `loginMember`의 `role`을 다시 확인한다. 훈련생이 번호를 직접 넣으면 "관리자만 쓸 수 있습니다".
+- **권한:** v0.1에는 권한 구분이 없다. 로그인한 훈련생은 출결 메뉴를 모두 쓴다. 과정 설정·수업일 캘린더를 관리자만 쓰게 하는 것은 v0.2(L-16)에서 한다.
 - 저장 실패(`SQLException`)는 스택트레이스 대신 **한 줄 안내**를 보여 주고 메뉴로 돌아간다.
 - 메뉴에 없는 번호나 형식이 틀린 값(날짜, 시각)은 **다시 입력받는다.**
 
@@ -208,10 +204,10 @@ flowchart LR
   - 3a. 수업일이 아니다(주말·공휴일·휴강) → "수업일이 아닙니다" 후 2로.
   - 3b. 오늘이다 → "오늘 출결은 내일 입력하세요" 후 2로. 오늘은 계산에서도 빠진다 (3절).
   - 4a. 출석인데 퇴실 시각이 비어 있다 → 저장하지 않고 "퇴실한 뒤 입력하세요"를 보여 준다. v0.1에는 출결 수정 기능이 없어서, 입실만 저장하면 퇴실을 나중에 넣을 수 없다.
-  - 5a. 그 날짜에 이미 기록이 있다 (UNIQUE 위반) → "이미 기록이 있습니다". 스택트레이스를 보여 주지 않는다. 수동 입력은 기존 기록을 **덮어쓰지 않는다** — 고쳐야 하면 고용24 표를 다시 가져온다 (L-06).
+  - 5a. 그 날짜에 이미 기록이 있다 (UNIQUE 위반) → "이미 기록이 있습니다". 스택트레이스를 보여 주지 않는다. 수동 입력은 기존 기록을 **덮어쓰지 않는다.** v0.1에는 출결 수정 기능이 없다 (v0.2에서는 고용24 표를 가져와 바로잡는다, L-06).
 - 사후 조건: `attendance_tbl`에 1행이 생긴다. **결석도 기록으로 남으므로, 기록이 없는 날은 "아직 입력하지 않은 날"이라는 뜻만 갖는다** (3절).
 
-**L-06 출결 가져오기** — 훈련생, 고용24
+**L-06 출결 가져오기 (v0.2)** — 훈련생, 고용24
 
 - 사전 조건: 로그인했다. 훈련생이 고용24 출결 화면의 표를 복사해 `data/`에 텍스트 파일로 저장해 두었다 ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전)).
 - 기본 흐름
@@ -236,9 +232,9 @@ flowchart LR
   2. 시스템이 이번 달 수업일 중 어제까지의 출결 기록을 상태별로 세고, **기록이 없는 수업일(미입력) 수**도 센다 (SQL).
   3. 시스템이 **기록이 있는 날만으로** 환산 결석과 출석률을 계산한다 (`AttendanceRule`, 3절 공식).
   4. 시스템이 "지각 몇 번 / 결석 며칠 더면 80% 아래"를 계산해 경고와 함께 보여 준다 (2절 사용 장면).
-  5. 미입력이 있으면 "미입력 N일 — 결석이었다면 입력하거나 고용24 표를 가져오세요"를 덧붙인다.
+  5. 미입력이 있으면 "미입력 N일 — 결석이었다면 결석으로 입력하세요"를 덧붙인다.
 - 예외 흐름
-  - 2a. 이번 달 기록이 하나도 없다 → "이번 달 기록이 없습니다 — 출결을 입력하거나 고용24 표를 가져오세요".
+  - 2a. 이번 달 기록이 하나도 없다 → "이번 달 기록이 없습니다 — 출결을 입력하세요".
 - 사후 조건: 데이터를 바꾸지 않는다.
 
 **L-09 반 전체 현황** — 훈련생
@@ -257,10 +253,10 @@ flowchart LR
 
 | 번호 | 액터 | 사전 조건 | 성공 결과 | 주요 예외 |
 | --- | --- | --- | --- | --- |
-| L-01 회원가입 | 방문자 | — | 훈련생 1행 생성 (비밀번호는 솔트 + 해시로 저장, `role`은 항상 `TRAINEE`) | 빈 값, 아이디 중복, 비밀번호 확인 불일치 → 안내 후 재입력. 휴대폰 번호는 빈 값 허용 |
+| L-01 회원가입 | 방문자 | — | 훈련생 1행 생성 (비밀번호는 솔트 + 해시로 저장) | 빈 값, 아이디 중복, 비밀번호 확인 불일치 → 안내 후 재입력. 휴대폰 번호는 빈 값 허용 |
 | L-02 로그인 | 방문자 | 회원가입했다 | 로그인 상태 보관, 출결 메뉴로 | 없는 아이디 또는 틀린 비밀번호 → "아이디 또는 비밀번호가 맞지 않습니다" (어느 쪽이 틀렸는지 알려 주지 않는다) |
-| L-03 과정 설정 | 관리자 | 관리자로 로그인 | `course_tbl` 1행 저장·수정 | 훈련생 → "관리자만 쓸 수 있습니다". 종료일이 시작일보다 빠름, 시각 형식 오류 |
-| L-04 수업일 캘린더 | 관리자 | 관리자로 로그인, 과정 설정 | 훈련 기간 평일 생성, 휴일 등록 시 수업일에서 제외 | 훈련생 → "관리자만 쓸 수 있습니다". 이미 생성됨 → 다시 만들지 않음 |
+| L-03 과정 설정 | 훈련생 | 로그인 | `course_tbl` 1행 저장·수정 | 종료일이 시작일보다 빠름, 시각 형식 오류 |
+| L-04 수업일 캘린더 | 훈련생 | 로그인, 과정 설정 | 훈련 기간 평일을 **한 트랜잭션으로** 생성, 휴일 등록 시 수업일에서 제외 | 이미 생성됨 → 다시 만들지 않음. 생성 중 실패 → **전부 롤백**하고 "0일 생성" |
 | L-10 로그아웃 | 훈련생 | 로그인 | 로그인 정보 제거, 시작 메뉴로 | — |
 | L-11 회원 탈퇴 | 훈련생 | 로그인 | 출결 기록과 회원 정보 삭제(FK CASCADE), 시작 메뉴로 | 확인에서 `n` → 취소 |
 | L-12 프로그램 종료 | 방문자, 훈련생 | — | 프로그램 종료 | — |
@@ -282,7 +278,7 @@ flowchart LR
 | 컬렉션·제네릭 | `chap11-collections`, `chap10-Generics` | `Map<LocalDate, Attendance>` 로 날짜별 기록, `List<MonthlySummary>` |
 | 람다·스트림 | `chap15-lambda`, `chap16-stream` | 붙여 넣은 줄 → `filter(날짜로 시작하는 6칸 줄)` → `map(파싱)` → `toList()`; 랭킹 `sorted(comparing(...))`; 경고 계산 |
 | java.time | `chap09-api` | `LocalDate`/`LocalTime`/`YearMonth`, 평일 생성 (`DayOfWeek`), 월 경계 계산 |
-| **파일 읽기** | **새로 배움** (`Properties.load(FileReader)`는 이미 씀) | `Files.readAllLines(Path)` 또는 `BufferedReader` 로 붙여 넣은 텍스트 파일 읽기. 작은 확장이지만 처음 |
+| **파일 읽기** (v0.2) | **새로 배움** (`Properties.load(FileReader)`는 이미 씀) | `Files.readAllLines(Path)` 또는 `BufferedReader` 로 붙여 넣은 텍스트 파일 읽기 (L-06). 작은 확장이지만 처음 |
 | 스레드 | `chap17-thread` | v0.2 디스코드 알림 예약 전송 (`ScheduledExecutorService`) |
 
 ### 5.2 MySQL (`02_Database/`)
@@ -296,7 +292,7 @@ flowchart LR
 | 서브쿼리 / CTE | `01_DQL/09_SubQuery` | 월별 집계를 CTE로 만들고 바깥에서 출석률 계산 |
 | VIEW | `04_DDL/03_View` | `v_monthly_attendance` — 월별 집계를 뷰로 두고 Java는 뷰만 SELECT |
 | INDEX | `04_DDL/04_Index` | `attendance_tbl(attend_date)` 인덱스. 월별 조회 전후 `EXPLAIN` 비교해 보기 |
-| DML — INSERT/UPDATE/DELETE/**REPLACE** | `02_DML` | 출결 가져오기는 `REPLACE INTO` 로 같은 날짜 기록(재가져오기, 수동 입력)을 덮어쓴다 — **고용24 값이 최종** (UNIQUE 덕분에 가능) |
+| DML — INSERT/UPDATE/DELETE/**REPLACE** | `02_DML` | (v0.2) 출결 가져오기는 `REPLACE INTO` 로 같은 날짜 기록(재가져오기, 수동 입력)을 덮어쓴다 — **고용24 값이 최종** (UNIQUE 덕분에 가능) |
 | **트랜잭션** | `03_Transaction` (SQL로만 배움) | **JDBC에서 처음 쓴다** — 아래 5.3 |
 
 ### 5.3 JDBC (`03_jdbc/`)
@@ -309,11 +305,11 @@ flowchart LR
 | `ResultSet` → DTO 매핑 | 스켈레톤 `findByPhone` | `getObject(col, LocalDate.class)` / `LocalTime.class` — 스켈레톤의 `getTimestamp().toLocalDateTime()`에서 한 단계 확장 |
 | try-with-resources, `SQLException` → `IllegalStateException` | 스켈레톤 규칙 | 그대로 유지 |
 | `executeUpdate()` 반환값으로 성공 판정 | 스켈레톤 | 그대로 |
-| **트랜잭션 (`setAutoCommit(false)` / `commit` / `rollback`)** | **새로 배움** — SQL `START TRANSACTION`을 JDBC로 | ① 출결 가져오기: N행 INSERT + `import_log_tbl` 1행, 하나라도 실패하면 **전부 롤백** ② 비교용: 회원 탈퇴는 트랜잭션 없이 **FK CASCADE**가 처리 — 둘의 차이를 PR에 적는다 |
+| **트랜잭션 (`setAutoCommit(false)` / `commit` / `rollback`)** | **새로 배움** — SQL `START TRANSACTION`을 JDBC로 | ① **v0.1 — 수업일 캘린더 생성(L-04):** 훈련 기간의 평일 N행 INSERT, 하나라도 실패하면 **전부 롤백** ② v0.2 — 출결 가져오기(L-06): N행 + `import_log_tbl` 1행 ③ 비교용: 회원 탈퇴는 트랜잭션 없이 **FK CASCADE**가 처리 — 둘의 차이를 PR에 적는다 |
 | **`SQLIntegrityConstraintViolationException` 구분** | 새로 배움 | 같은 날 중복 입력 → UNIQUE 위반을 잡아 "이미 기록이 있습니다"로 안내 |
-| **`addBatch()` / `executeBatch()`** | 새로 배움 (선택) | 가져올 줄이 100행 이상이면 배치 실행. 먼저 반복 `executeUpdate`로 만들고, 시간 비교 뒤 배치로 바꿔 보기 |
+| **`addBatch()` / `executeBatch()`** | 새로 배움 (선택) | 수업일 생성(약 120행)이나 가져올 줄이 많으면 배치 실행. 먼저 반복 `executeUpdate`로 만들고, 시간 비교 뒤 배치로 바꿔 보기 |
 
-> 트랜잭션은 이 프로젝트에서 **가장 중요하게 실습하는 항목**이다. 출결 가져오기 PR에는 반드시 "중간 줄을 고의로 깨뜨려 롤백되는 것을 확인한" 기록을 넣는다.
+> 트랜잭션은 이 프로젝트에서 **가장 중요하게 실습하는 항목**이다. v0.1에서는 수업일 캘린더(L-04) PR에 반드시 "중간 행을 고의로 실패시켜 롤백되는 것을 확인한" 기록을 넣는다.
 
 ---
 
@@ -323,16 +319,16 @@ flowchart LR
 
 | 스켈레톤 (OTT 구독관리) | 지각 잡는 자바 | 바뀌는 것 |
 | --- | --- | --- |
-| `model.Member` (memberId, name, age, phone) | `model.Member` (memberId, loginId, passwordHash, passwordSalt, name, phone, role) + `model.Role` enum (`ADMIN`, `TRAINEE`) | 훈련생. **age 삭제**, 로그인용 필드와 권한 추가, phone은 선택(`null` 가능) |
+| `model.Member` (memberId, name, age, phone) | `model.Member` (memberId, loginId, passwordHash, passwordSalt, name, phone) | 훈련생. **age 삭제**, 로그인용 필드 추가, phone은 선택(`null` 가능). `role` 열은 스키마에 있지만(기본값 `TRAINEE`) v0.1 코드는 쓰지 않는다. `role` 필드와 `Role` enum은 v0.2(L-16) |
 | `model.Membership` (ottType, planName, enrollDate, expiryDate, active) | `model.Attendance` (attendanceId, memberId, attendDate, checkIn, checkOut, status, memo, source) | 구독 1건 → 출결 1건. `LocalDateTime` 2개 → `LocalDate` + `LocalTime` 2개 |
 | — | `model.AttendanceStatus` (enum) | `PRESENT, LATE, EARLY_LEAVE, OUTING, ABSENT, EXCUSED` |
 | — | `model.Course` | 과정 설정 1행 |
 | — | `model.MonthlySummary` | 월별 집계 결과 (뷰 1행) |
 | `repository.MemberRepository` (save / findByPhone / deleteById) | save / **findByLoginId** / deleteById | 조회 키만 휴대폰 번호 → 아이디로 바꾼다 |
-| `repository.MembershipRepository` | `repository.AttendanceRepository` | `addMembership` → `save`, `findAllMembershipsByMemberId` → `findByMemberAndMonth`, `extendMembership` → 삭제, + `saveAll(List, Connection)` (트랜잭션용), `findMembersWithoutRecord(ym)` (LEFT JOIN) |
+| `repository.MembershipRepository` | `repository.AttendanceRepository` | `addMembership` → `save`, `findAllMembershipsByMemberId` → `findByMemberAndMonth`, `extendMembership` → 삭제, + `findMembersWithoutRecord(ym)` (LEFT JOIN), (v0.2) `saveAll(List, Connection)` (가져오기 트랜잭션용) |
 | — | `repository.CourseRepository`, `repository.ClassDayRepository` | 설정·캘린더 |
 | — | `service` 계층? | **도입하지 않는다.** 규칙은 `rule.AttendanceRule` (순수 Java 클래스)에, 흐름은 Controller에. 아직 안 배운 계층을 만들지 않는다 |
-| — | `importer.AttendanceImporter` (interface), `importer.Work24Importer` | 파일 → `List<Attendance>` |
+| — | (v0.2) `importer.AttendanceImporter` (interface), `importer.Work24Importer` | 파일 → `List<Attendance>` |
 | `controller.MemberController` (로그인 상태 보관) | `controller.MemberController` + `controller.AttendanceController` | 로그인 흐름 유지. 출결 메뉴는 새 컨트롤러 |
 | `view.MemberView` | `view.MemberView` + `view.AttendanceView` | 리스크 화면 출력 |
 | `run.Application` (회원가입/로그인 → 구독 메뉴) | `run.Application` | 구독 메뉴 → 출결 메뉴로 교체 |
@@ -345,6 +341,8 @@ flowchart LR
 
 스켈레톤 스키마 스타일(`_tbl` 접미사, 이름 붙인 제약조건) 유지.
 
+**스키마는 확장을 고려해 만든다.** v0.2 기능(L-06 출결 가져오기, L-16 관리자 권한)에 쓸 열과 테이블도 **MVP 구현을 막지 않으면 v0.1 스키마에 미리 둔다.** 아래의 `role`, `source`, `import_log_tbl`이 그렇다. 셋 다 기본값이 있거나 v0.1 코드가 건드리지 않으므로, v0.1 코드는 이 열과 테이블을 몰라도 된다. 그래야 v0.2에서 `ALTER TABLE` 없이 기능만 붙일 수 있다.
+
 ```sql
 CREATE DATABASE IF NOT EXISTS latedb DEFAULT CHARACTER SET utf8mb4;
 USE latedb;
@@ -356,7 +354,7 @@ CREATE TABLE member_tbl (                           -- 스켈레톤 변형: 아�
     password_salt CHAR(32)    NOT NULL,                 -- 회원마다 다른 16바이트 난수, 16진수 32자
     name          VARCHAR(30) NOT NULL,
     phone         VARCHAR(20) NULL,                     -- 선택 입력
-    role          ENUM('ADMIN','TRAINEE') NOT NULL DEFAULT 'TRAINEE',  -- 회원가입은 항상 TRAINEE
+    role          ENUM('ADMIN','TRAINEE') NOT NULL DEFAULT 'TRAINEE',  -- v0.2 권한(L-16)용. v0.1 코드는 쓰지 않는다
     CONSTRAINT pk_member_tbl PRIMARY KEY (member_id),
     CONSTRAINT uq_member_tbl_login_id UNIQUE (login_id),
     CONSTRAINT uq_member_tbl_phone UNIQUE (phone)       -- NULL은 여러 행이어도 된다
@@ -391,7 +389,7 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
     check_out     TIME,
     status        ENUM('PRESENT','LATE','EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,
     memo          VARCHAR(200),
-    source        ENUM('MANUAL','WORK24') NOT NULL DEFAULT 'MANUAL',
+    source        ENUM('MANUAL','WORK24') NOT NULL DEFAULT 'MANUAL',  -- v0.2 가져오기(L-06)용. v0.1은 항상 MANUAL
     CONSTRAINT pk_attendance_tbl PRIMARY KEY (attendance_id),
     CONSTRAINT fk_attendance_tbl_member_tbl FOREIGN KEY (member_id)
         REFERENCES member_tbl (member_id) ON DELETE CASCADE,
@@ -403,6 +401,7 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
 
 CREATE INDEX idx_attendance_tbl_date ON attendance_tbl (attend_date);
 
+-- v0.2 가져오기(L-06)용. 확장을 고려해 v0.1 스키마에 미리 둔다. v0.1 코드는 쓰지 않는다
 CREATE TABLE import_log_tbl (                       -- 출결 가져오기 기록 (트랜잭션의 일부)
     import_id   INT AUTO_INCREMENT,
     file_name   VARCHAR(255) NOT NULL,
@@ -443,6 +442,8 @@ WHERE a.attendance_id IS NULL;
 ---
 
 ## 8. 출결 가져오기 — "파일 업로드"의 콘솔 버전
+
+> **v0.2 기능이다 (L-06).** v0.1 MVP에서는 구현하지 않는다. 설계는 v0.2 착수 때 그대로 쓰도록 남겨 둔다.
 
 콘솔 앱에서 파일 업로드는 **경로를 입력받아 읽는 것**이다.
 
@@ -604,7 +605,7 @@ java-latecatcher/
    │  │     │  └─ JDBCTemplate.java
    │  │     ├─ + rule                         # 추가 패키지
    │  │     │  └─ AttendanceRule.java
-   │  │     └─ + importer                     # 추가 패키지
+   │  │     └─ + importer                     # 추가 패키지 — v0.2 (L-06)
    │  │        ├─ AttendanceImporter.java
    │  │        ├─ Work24Importer.java
    │  │        └─ ImportException.java
@@ -626,11 +627,11 @@ java-latecatcher/
 | 추가 | 위치 | 이유 |
 | --- | --- | --- |
 | `rule` 패키지 | `com.latecatcher.app.rule` | 출결 규칙(상태 판정, 출석률 계산)을 DB와 콘솔 없이 **순수 Java**로 두어 JUnit으로 테스트하기 위해. controller에 두면 테스트할 때 DB가 필요해진다 |
-| `importer` 패키지 | `com.latecatcher.app.importer` | 붙여 넣은 표 읽기·파싱은 DB 접근(repository)도 흐름 조정(controller)도 아니라서 따로 둔다 |
+| `importer` 패키지 (v0.2) | `com.latecatcher.app.importer` | 붙여 넣은 표 읽기·파싱은 DB 접근(repository)도 흐름 조정(controller)도 아니라서 따로 둔다 |
 | 모델·repository·controller·view·mapper 파일 | 기준 패키지 안 | 출결·과정·수업일 기능. 기준 패키지에 파일만 추가한다 |
 | `db.properties.example` | `resources` | `db.properties`는 gitignore라서, 팀원이 복사해 쓸 견본을 커밋한다 |
 | `db/schema.sql`, `db/insert.sql` | `resources/db` | 7절 스키마와 샘플 데이터 |
-| `data/` | 프로젝트 루트 | 출결 가져오기 입력 파일(고용24 표를 붙여 넣은 텍스트). `sample.txt`만 커밋 |
+| `data/` | 프로젝트 루트 | (v0.2) 출결 가져오기 입력 파일(고용24 표를 붙여 넣은 텍스트). `sample.txt`만 커밋 |
 | `src/test` | 프로젝트 루트 | `AttendanceRuleTest` (13절 성공 기준) |
 
 ### 규칙
@@ -662,15 +663,14 @@ java-latecatcher/
 ===== 이영희 — 출결 메뉴 =====
 1. 내 출결 리스크 보기 (이번 달)
 2. 출결 입력 (출석: 날짜/입실/퇴실, 결석: 날짜)
-3. 출결 가져오기 (고용24 표 붙여 넣은 파일)
 4. 반 전체 현황 (월별 순위, 80% 미달자, 기록 없음)
-5. [관리자] 과정 설정 / 수업일 캘린더          ← 관리자에게만 보인다
+5. 과정 설정 / 수업일 캘린더
 6. 회원 탈퇴
 7. 로그아웃
 9. 프로그램 종료
 ```
 
-훈련생 화면에는 5번이 없다. 번호는 당기지 않고 비워 둔다 — 관리자와 훈련생이 같은 번호로 같은 기능을 쓰게 하기 위해서다.
+v0.1에는 권한 구분이 없어 모든 훈련생에게 같은 메뉴가 보인다. **3번은 v0.2의 출결 가져오기(L-06) 자리**로 비워 둔다 — 번호를 당기지 않아야 v0.2에서 메뉴 번호가 바뀌지 않는다. 관리자만 5번을 보게 하는 것도 v0.2(L-16)에서 한다.
 
 ---
 
@@ -692,7 +692,7 @@ java-latecatcher/
 
 | 작업 | 담당 | 내용 | 이슈 제목 · 라벨 · 브랜치 (예) |
 | --- | --- | --- | --- |
-| **0-A 문서 구조** | A (RY) | ① 노션 페이지 트리 — 프로젝트 소개, 요구사항 명세, 모델링(ERD 초안 · 테이블 정의서 · properties 설명), 팀 R&R, ⭐Ground Rule, 데일리 스크럼, 회의록. 각 페이지는 **제목과 소제목, 채울 항목**만 둔다 ② README 목차 — 소개, 주요 기능, 실행 방법(clone → `schema.sql` → `db.properties` → 실행), 출결 가져오기 사용법, 프로젝트 구조, 팀, 문서 링크. 각 절은 "작성 예정"으로 비워 둔다 | `[문서] 노션 페이지 트리와 README 목차 구성` · `🌏 Environment` `docs` · `docs/번호-doc-structure` |
+| **0-A 문서 구조** | A (RY) | ① 노션 페이지 트리 — 프로젝트 소개, 요구사항 명세, 모델링(ERD 초안 · 테이블 정의서 · properties 설명), 팀 R&R, ⭐Ground Rule, 데일리 스크럼, 회의록. 각 페이지는 **제목과 소제목, 채울 항목**만 둔다 ② README 목차 — 소개, 주요 기능, 실행 방법(clone → `schema.sql` → `db.properties` → 실행), 출결 입력·리스크 확인 사용법, 프로젝트 구조, 팀, 문서 링크. 각 절은 "작성 예정"으로 비워 둔다 | `[문서] 노션 페이지 트리와 README 목차 구성` · `🌏 Environment` `docs` · `docs/번호-doc-structure` |
 | **0-B 데이터 설계** | B (YY) 책임, **세 명 모두 참여** | 아래 "ERD 만드는 순서" ①~⑤ | `[환경] ERD 합의와 schema.sql·insert.sql 작성` · `🌏 Environment` `sql` `docs` · `chore/번호-erd-schema` |
 | **0-C 코드 구조** | C (YI) | ① `build.gradle`·Gradle 래퍼를 수업 버전으로 (Java 21, Gradle 9.6.0, Lombok, UTF-8, mainClass `com.latecatcher.app.run.Application`, `run.standardInput`) — 12절 ② 패키지 `skeleton` → `com.latecatcher.app` (repository의 `QUERY_FILE` 경로 포함), 스켈레톤 컴파일 오류(`MemberRepository.save`, `MemberController.login`) 수정 ③ 9절 구조의 **모든 파일 생성** — 클래스 선언, 파일 머리 주석(역할, 관련 기능 번호), 메서드 자리에 **TODO** ④ `mapper/*.xml`에 쿼리 키와 TODO ⑤ `Application` 메뉴 뼈대 (선택하면 "준비 중") ⑥ `db.properties.example` ⑦ `./gradlew compileJava` 통과 | `[환경] 패키지 구조와 빌드 설정, 파일 뼈대·TODO 작성` · `🌏 Environment` `config` `common` `run` · `chore/번호-project-structure` |
 
@@ -702,11 +702,12 @@ java-latecatcher/
 2. **B가 종합한다.** 세 초안의 차이(테이블, 컬럼, 타입, 키, 관계, NULL 허용, 제약)를 표로 정리한다.
 3. **B가 AI에게 상담한다.** 차이가 난 지점마다 정규화, 키 선택, 제약을 물어보고, 질문과 답의 요지를 노션에 남긴다. AI 답은 근거로만 쓰고 결정은 팀이 한다.
 4. **세 명이 합의한다.** 회의에서 차이점을 하나씩 정한다. 합의본을 `docs/erd.md`(Mermaid)로 PR을 올리고, **작성자 B + approve 2 = 세 명 모두 동의**로 머지한다. 7절과 다른 점이 있으면 같은 PR에서 7절을 고친다.
-5. **B가 물리 DB를 만든다.** 합의 ERD대로 `resources/db/schema.sql`(DDL, 스켈레톤 제약 이름 규칙)과 `insert.sql`(팀 3명 계정 — C만 `role = 'ADMIN'`, 과정 1행, 훈련 기간 수업일, 샘플 출결)을 쓴다. 테이블 정의서(노션)는 합의 ERD에서 만든다.
+5. **B가 물리 DB를 만든다.** 합의 ERD대로 `resources/db/schema.sql`(DDL, 스켈레톤 제약 이름 규칙)과 `insert.sql`(팀 3명 계정, 과정 1행, 훈련 기간 수업일, 샘플 출결)을 쓴다. 테이블 정의서(노션)는 합의 ERD에서 만든다.
 
 #### C의 주석·TODO 규칙 (0-C)
 
-- 파일 머리 주석: 이 클래스의 **역할**과 **관련 기능 번호** (`L-05, L-06`).
+- 파일 머리 주석: 이 클래스의 **역할**과 **관련 기능 번호** (`L-05, L-08`).
+- **v0.1 기능만 뼈대를 만든다.** v0.2 기능(L-06 `importer` 패키지, L-16 권한)의 파일은 만들지 않는다.
 - 구현할 자리마다 **`// TODO [기능번호] 할 일`** 형식으로 쓴다. IntelliJ의 **TODO 창**에서 기능 번호로 모아 볼 수 있다.
 
   ```java
@@ -732,15 +733,15 @@ java-latecatcher/
 - 0-B ①은 세 명이 함께하므로 가장 먼저 한다. 0-C의 `model` 필드는 합의 ERD(0-B ④)를 기다린다.
 - 0-C를 ①②(빌드·패키지)와 ③~⑦(뼈대) 두 PR로 나눠도 된다.
 
-### 기능 분담
+### 기능 분담 (초안 — 10/22 11:30 회의에서 확정)
 
-**아래 표는 0단계 이전의 안이다. 0단계 기반 책임을 반영해 비중을 다시 나눈 업무 분장은 15절에서 새로 정한다.**
+v0.1 MVP 기능만 나눈다 (L-06 출결 가져오기와 L-16 권한은 v0.2). 시간과 순서는 [SCHEDULE.md 담당](SCHEDULE.md#담당).
 
 | 담당 | 기능 | 만드는 것 | 집중 실습 항목 |
 | --- | --- | --- | --- |
-| **A (RY) — 훈련생 + 출결 가져오기** | 회원 CRUD 마무리, **출결 가져오기** | `Work24Importer`, `ImportException`, `AttendanceRepository.saveAll`, `import_log_tbl` | 파일 읽기, 스트림 파싱, **JDBC 트랜잭션**, REPLACE, (선택) executeBatch |
-| **B (YY) — 출결 + 규칙** | 출결 수동 입력(출석·결석), 상태 판정, **출석률·미입력 계산**, 중복 입력 처리 | `Attendance`, `AttendanceStatus`, `AttendanceRule` + **JUnit 테스트**, `AttendanceRepository.save` | enum, 순수 로직 + 단위 테스트, UNIQUE 위반 예외 구분 |
-| **C (YI) — 캘린더 + 통계 + 통합** | 과정 설정, 수업일 생성, **리스크 화면**, 반 전체 현황, **관리자 권한 확인**, `Application` 메뉴 통합 | `Course`, `ClassDayRepository`, `MonthlySummary`, `v_monthly_attendance` 뷰, `AttendanceRepository.findMembersWithoutRecord`, `AttendanceView`, `run.Application` | java.time 평일 생성, VIEW, GROUP BY/HAVING, SUM(CASE), **LEFT JOIN + IS NULL**, INDEX + EXPLAIN |
+| **A (RY) — 회원 + 수업일 + 반 전체 현황** | L-01·L-02 아이디·비밀번호 회원가입·로그인, L-10·L-11 로그아웃·탈퇴, **L-04 수업일 캘린더**, **L-09 반 전체 현황** | `Member`, `MemberRepository`, `MemberController`, 비밀번호 해시, `ClassDay`, `ClassDayRepository`, `classday-query.xml`, `v_monthly_attendance` 뷰, `MonthlySummary`, `AttendanceRepository.findMembersWithoutRecord` | `MessageDigest`·`SecureRandom`, java.time 평일 생성, **JDBC 트랜잭션**(수업일 일괄 생성), VIEW, GROUP BY/HAVING, **LEFT JOIN + IS NULL**, INDEX + EXPLAIN |
+| **B (YY) — 출결 + 규칙** | **출결 규칙**(판정·출석률·미입력), **L-05 출결 입력**(출석·결석), 중복 입력 처리 | `Attendance`, `AttendanceStatus`, `AttendanceRule` + **JUnit 테스트**, `AttendanceRepository.save`, `attendance-query.xml` | enum, 순수 로직 + 단위 테스트, UNIQUE 위반 예외 구분, `LocalDate`·`LocalTime` |
+| **C (YI) — 과정 + 리스크 화면 + 통합** | **L-03 과정 설정**, **L-08 내 출결 리스크**, **L-12 종료 + 메뉴 통합** | `Course`, `CourseRepository`, `course-query.xml`, `AttendanceView`, `run.Application` | 설정값 저장·조회, 경고 계산 결과 출력, 메뉴 흐름 통합 |
 
 > A·B·C가 `AttendanceRepository`와 `attendance-query.xml`을 함께 건드린다. 0-C에서 메서드 자리를 TODO로 미리 만들어 두면, 각자 자기 메서드 본문만 채우므로 충돌이 줄어든다.
 
@@ -748,12 +749,13 @@ java-latecatcher/
 
 ```text
 0단계 ─┬─ 0-A 문서 구조 (A) ──────────────┐
-       ├─ 0-B ERD 합의 → 물리 DB (B 주도) ─┼─ 기능 구현 (15절) ─ 메뉴 통합 ─ [v0.1] ─ v0.2 (공휴일 API → 디스코드 알림 검토) ─ [v0.2]
+       ├─ 0-B ERD 합의 → 물리 DB (B 주도) ─┼─ 기능 구현 (15절) ─ 메뉴 통합 ─ [v0.1 MVP] ─ v0.2 (출결 가져오기, 권한, 공휴일 API → 디스코드 알림 검토) ─ [v0.2]
        └─ 0-C 코드 구조·TODO (C) ──────────┘
 ```
 
-- 기능 1개 = 이슈 1개 = 브랜치 1개 = PR 1개. 크면 쪼갠다 (예: L-06 "파일 읽기·미리보기" / "트랜잭션 저장").
+- 기능 1개 = 이슈 1개 = 브랜치 1개 = PR 1개. 크면 쪼갠다 (예: L-04 "평일 일괄 생성(트랜잭션)" / "휴일 등록").
 - 매일 10분 모여 열린 PR을 함께 보고 approve. 3명이라 approve 2 = **나머지 둘이 모두 봐야 머지**.
+- **머지는 단계별로 한다.** 1 기반(로그인·출결 규칙·과정 설정) → 2 기록(출결 입력·수업일) → 3 조회(리스크·반 전체 현황) → 4 통합. 한 단계의 필수 PR이 모두 승인되거나 단계 목표 시각이 되면 10분 머지 회의를 열고 머지한다. 단계와 목표 시각은 [SCHEDULE.md 개발 루프](SCHEDULE.md#1023-금--1026-월--개발-루프와-단계별-머지).
 
 ---
 
@@ -784,17 +786,16 @@ java-latecatcher/
 ## 13. 성공 기준
 
 - [ ] 팀원 3명이 로그인해서 **자기 10월 출석률과 경고**를 본다 — 수치가 수동 계산과 일치
-- [ ] 출결 가져오기 파일의 중간 줄을 고의로 깨뜨리면 **한 줄도 저장되지 않는다** (롤백 확인 기록이 PR에 있음)
+- [ ] 수업일 캘린더 생성 중 중간 행을 고의로 실패시키면 **한 행도 저장되지 않는다** (롤백 확인 기록이 PR에 있음)
 - [ ] 같은 날 중복 입력 시 "이미 기록이 있습니다" 안내 (예외 스택트레이스 아님)
 - [ ] 수동 입력한 날짜를 고용24 표로 가져오면 그날 기록이 **고용24 값으로 바뀐다**
 - [ ] 고용24 **페이지 전체**를 복사한 파일과 **출결 표만** 복사한 파일을 가져온 결과가 같다
-- [ ] 훈련생 계정에는 과정 설정 메뉴가 보이지 않고, 번호를 직접 넣어도 "관리자만 쓸 수 있습니다"가 나온다. C의 관리자 계정으로는 쓸 수 있다
 - [ ] 세 명이 각자 그린 ERD 초안을 종합한 **합의 ERD**(`docs/erd.md`)가 세 명 동의로 머지되고, `schema.sql`이 그 ERD와 같다
 - [ ] 반 전체 현황에서 80% 미달자가 HAVING으로 걸러져 나온다
 - [ ] 그 달 기록이 없는 훈련생은 순위·미달 명단에서 빠지고 "기록 없음"에 따로 나온다. 결석을 입력한 훈련생은 미달 명단에 그대로 나온다
 - [ ] `AttendanceRuleTest` 가 통과한다 (경계값: 지각 2회/3회, 79.9%/80.0%, 공결 처리, **퇴실 기록 없는 오늘 줄은 계산에서 빠짐**, **기록 없는 날은 분모에서 빠지고 미입력으로 세어짐**, 기록 0일이면 계산하지 않음)
 - [ ] 팀원 각자 PR 2개 이상, 모든 PR approve 2개, 커밋 메시지 규칙 준수, 태그 `v0.1`
-- [ ] README만 보고 다른 반 친구가 clone → `schema.sql` → `db.properties` → 실행 → 자기 고용24 표를 복사해 가져오기까지 할 수 있다
+- [ ] README만 보고 다른 반 친구가 clone → `schema.sql` → `db.properties` → 실행 → 자기 출결을 입력해 리스크를 확인하기까지 할 수 있다
 
 ---
 
@@ -807,7 +808,9 @@ java-latecatcher/
 5. ~~A/B/C 담당자~~ → **결정: A = RY (문서 구조), B = YY (데이터 설계), C = YI (코드 구조)** ([11절](#11-팀-구성과-역할-분담-3명)). 기능·문서 내용 분담은 15절에서 다시 정한다
 6. ~~머지 방식 merge commit vs squash~~ → **결정: Merge commit.** 각 커밋 메시지가 `main` 히스토리에 그대로 남는 방식 ([CONVENTION 5절](CONVENTION.md#5-pr-rule))
 7. ~~v0.2에서 공휴일 API와 디스코드 알림 중 무엇을 먼저 할지~~ → **결정: 공휴일 API(L-13) 먼저**, 디스코드 알림(L-14)은 그다음 (메신저로 출결을 **받는** 기능은 향후 확장 L-15)
-8. ~~**과정 설정(L-03)·수업일 캘린더(L-04)를 누가 실행하나**~~ → **결정: 관리자 계정을 둔다.** `member_tbl.role`(`ADMIN`/`TRAINEE`)로 구분하고, 회원가입은 항상 `TRAINEE`다. 관리자-훈련생 기능을 실습하기 위해 **v0.1에서는 과정 설정 구현자인 C만 관리자**, A·B는 훈련생으로 둔다. C의 관리자 지정은 `insert.sql`에서 한다. 나중에는 팀 3명 모두 관리자로 바꾼다 (`UPDATE member_tbl SET role = 'ADMIN' WHERE login_id IN (…)`) ([4절 유스케이스](#유스케이스))
+8. ~~**과정 설정(L-03)·수업일 캘린더(L-04)를 누가 실행하나**~~ → **결정 (10/22 변경): v0.1 MVP에서는 권한 없이 모든 훈련생이 쓴다.** 권한 확인(관리자 메뉴, 컨트롤러 확인)은 v0.2(L-16)에서 다시 설정한다. `member_tbl.role` 열은 확장을 위해 v0.1 스키마에 미리 둔다 (7절). 이전 결정(C만 관리자)은 v0.2에서 다시 정한다 ([4절](#4-기능))
+9. ~~**L-06 출결 가져오기를 v0.1에 넣을지**~~ → **결정 (10/22, YI 제안): v0.1에서 제외하고 v0.2로 옮긴다.** 고용24 표를 복사해 텍스트 파일로 가져오는 것은 MVP에 꼭 필요하지 않은 추가 기능이다. v0.1의 트랜잭션 실습은 수업일 캘린더(L-04)로 옮긴다 ([5절](#53-jdbc-03_jdbc))
+10. ~~**ERD와 `schema.sql`을 v0.1 범위로만 만들지**~~ → **결정 (10/22): 확장을 고려해 만든다.** MVP 구현을 막지 않는 v0.2용 열·테이블(`role`, `source`, `import_log_tbl`)은 빼지 않는다 ([7절](#7-데이터-설계))
 
 ---
 
@@ -842,9 +845,9 @@ java-latecatcher/
 
 0단계 기반 책임과 각자의 비중을 반영한 업무 분장 **초안은 [SCHEDULE.md 담당](SCHEDULE.md#담당)** 에 있다. **10/22 11:30 회의**에서 이 문서 검토 → 기능 검토 → 분배 검토를 거쳐 확정하고, 확정되면 이 절을 고친다. 다시 나눌 대상은 다음과 같다.
 
-- 기능: L-01·L-02 아이디·비밀번호 로그인, L-03 과정 설정 + 관리자 구분, L-04 수업일 캘린더, L-05 출결 입력, 출석률·미입력 계산(`AttendanceRule`), L-06 출결 가져오기, L-08 내 출결 리스크, L-09 반 전체 현황, L-10·L-11 로그아웃·탈퇴, L-12 종료 + 메뉴 통합
+- 기능 (v0.1 MVP): L-01·L-02 아이디·비밀번호 로그인, L-03 과정 설정, L-04 수업일 캘린더, L-05 출결 입력, 출석률·미입력 계산(`AttendanceRule`), L-08 내 출결 리스크, L-09 반 전체 현황, L-10·L-11 로그아웃·탈퇴, L-12 종료 + 메뉴 통합
 - 문서 내용: 노션 요구사항 명세, 테이블 정의서, properties 설명, 팀 R&R·⭐Ground Rule, 프로젝트 소개, 데일리 스크럼 템플릿, README 각 절
 
-참고로 0단계 이전의 기능 분담은 [11절 기능 분담](#기능-분담) 표에 남아 있다.
+기능 분담 요약은 [11절](#11-팀-구성과-역할-분담-3명)에 있다.
 
 > 데일리 스크럼은 매일 돌아가며 진행한다.
