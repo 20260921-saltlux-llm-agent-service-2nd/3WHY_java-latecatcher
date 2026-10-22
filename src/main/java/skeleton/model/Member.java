@@ -1,26 +1,16 @@
 package skeleton.model;
 
-import lombok.*;
 
-// 구독 서비스 사용자 정보
-@Setter
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Member {
 
-    private int memberId;
-    private String name;
-    private int age;
-    private String phone;
 
-    @Override
-    public String toString() {
-        return "Member{" +
-               "memberId=" + memberId +
-               ", name='" + name + '\'' +
-               ", age=" + age +
-               ", phone='" + phone + '\'' +
-               '}';
-    }
 }

@@ -112,7 +112,7 @@
 | L-15 | 메신저 출결 입력 | `messenger-checkin` | 디스코드(또는 텔레그램) 메시지 — 입실·퇴실 | 훈련생이 콘솔에 로그인하지 않고 메신저로 입실·퇴실을 보내면, 수동 입력(L-05)과 **같은 판정·저장 경로**로 기록한다. | L-05 확장 | 정하지 않음 |
 
 - **왜:** 출결 기록을 메신저로 받으면 이 프로그램을 고용24와 상관없는 모임 — SNS로 운영하는 스터디 그룹, 동아리 등 — 의 **출결부**로도 쓸 수 있다.
-- **v0.1에서 미리 지킬 것:** 출결 판정·저장은 `AttendanceController`(→ `AttendanceRule`, `AttendanceRepository`)에 두고, 콘솔 입력(`AttendanceView`)은 값을 받아 넘기기만 한다. 그래야 나중에 입력 채널만 붙이면 된다. **v0.1의 L-05는 지금 계획 그대로 둔다.**
+- **v0.1에서 미리 지킬 것:** 출결 판정·저장은 `AttendanceController`(→ `AttendanceRule`, `AttendanceRepository`)에 두고, 콘솔 입력 (`MemberView`)은 값을 받아 넘기기만 한다. 그래야 나중에 입력 채널만 붙이면 된다. **v0.1의 L-05는 지금 계획 그대로 둔다.**
 - **풀어야 할 것:** 메시지를 **받는** 봇은 디스코드 Gateway(웹소켓)나 텔레그램 폴링이 필요하고, 보통 외부 라이브러리를 쓴다. 12절의 "수업에서 배운 것만" 원칙과 부딪히므로 착수할 때 정한다. 메신저 계정과 훈련생을 잇는 방법(`member_tbl`에 메신저 ID 열 추가 등)도 그때 정한다.
 - 메신저로 넣은 기록도 수동 입력과 같은 대우를 받는다. 같은 날짜를 고용24에서 가져오면(v0.2, L-06) **고용24 값이 최종**이다 ([8절](#8-출결-가져오기--파일-업로드의-콘솔-버전)).
 
@@ -749,7 +749,7 @@ v0.1 MVP 기능만 나눈다 (L-06 출결 가져오기와 L-16 권한은 v0.2). 
 | --- | --- | --- | --- |
 | **A (RY) — 회원 + 수업일 + 반 전체 현황** | L-01·L-02 아이디·비밀번호 회원가입·로그인, L-10·L-11 로그아웃·탈퇴, **L-04 수업일 캘린더**, **L-09 반 전체 현황** | `Member`, `MemberRepository`, `MemberController`, 비밀번호 해시, `ClassDay`, `ClassDayRepository`, `classday-query.xml`, `v_monthly_attendance` 뷰, `MonthlySummary`, `AttendanceRepository.findMembersWithoutRecord` | `MessageDigest`·`SecureRandom`, java.time 평일 생성, **JDBC 트랜잭션**(수업일 일괄 생성), VIEW, GROUP BY/HAVING, **LEFT JOIN + IS NULL**, INDEX + EXPLAIN |
 | **B (YY) — 출결 + 규칙** | **출결 규칙**(판정·출석률·미입력), **L-05 출결 입력**(출석·결석), 중복 입력 처리 | `Attendance`, `AttendanceStatus`, `AttendanceRule` + **JUnit 테스트**, `AttendanceRepository.save`, `attendance-query.xml` | enum, 순수 로직 + 단위 테스트, UNIQUE 위반 예외 구분, `LocalDate`·`LocalTime` |
-| **C (YI) — 과정 + 리스크 화면 + 통합** | **L-03 과정 설정**, **L-08 내 출결 리스크**, **L-12 종료 + 메뉴 통합** | `Course`, `CourseRepository`, `course-query.xml`, `AttendanceView`, `run.Application` | 설정값 저장·조회, 경고 계산 결과 출력, 메뉴 흐름 통합 |
+| **C (YI) — 과정 + 리스크 화면 + 통합** | **L-03 과정 설정**, **L-08 내 출결 리스크**, **L-12 종료 + 메뉴 통합** | `Course`, `CourseRepository`, `course-query.xml`, `MemberView`, `run.Application` | 설정값 저장·조회, 경고 계산 결과 출력, 메뉴 흐름 통합 |
 
 > A·B·C가 `AttendanceRepository`와 `attendance-query.xml`을 함께 건드린다. 0-C에서 메서드 자리를 TODO로 미리 만들어 두면, 각자 자기 메서드 본문만 채우므로 충돌이 줄어든다.
 
