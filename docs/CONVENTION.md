@@ -307,7 +307,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 | `importer` | `importer/` | `Work24Importer` |
 | `repository` | `repository/` | `AttendanceRepository` |
 | `controller` | `controller/` | `AttendanceController` |
-| `view` | `view/` | `AttendanceView` |
+| `view` | `view/` | `MemberView` |
 | `run` | `run/` | `Application` 메뉴 |
 | `docs` | `README.md`, `docs/`, 노션 페이지 | PLAN, CONVENTION |
 
