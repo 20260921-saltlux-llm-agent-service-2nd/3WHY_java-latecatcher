@@ -122,7 +122,7 @@ feat: 입실 시각으로 지각 여부 판정
 - course_tbl의 start_time을 기준으로, 입실 시각이 그보다 늦으면 LATE,
   같거나 이르면 PRESENT로 판정한다.
 - 판정은 AttendanceRule.judge()에 두어 DB 없이 JUnit으로 테스트할 수 있게 했다.
-- 09:00:00 정각 입실이 PRESENT인지 경계값 테스트를 추가했다.
+- 09:20:00 정각 입실이 PRESENT인지 경계값 테스트를 추가했다.
 
 Refs #24
 ```
@@ -341,7 +341,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 | 기능 구현 | `[L-05] 출결 입력 — 입실·퇴실 시각으로 상태 판정` | `✨ Feature` `rule` `controller` | `feat/24-L05-attendance-checkin` | `feat: [L-05] 출결 입력과 상태 판정 #24` |
 | 기능을 쪼갠 두 번째 이슈 | `[L-06] 출결 가져오기 — 트랜잭션 저장` | `✨ Feature` `repository` `sql` | `feat/26-L06-import-transaction-save` | `feat: [L-06] 출결 가져오기 트랜잭션 저장 #26` |
 | 머지된 기능의 버그 | `[L-02] 로그인 성공 시 true 미반환, 미등록 번호도 로그인됨` | `🐞 Bug` `수정(fix)` `controller` | `fix/31-L02-login-return` | `fix: [L-02] 로그인 성공 시 true 반환 #31` |
-| 테스트만 추가 | `[L-05] 09:00 정각 입실 경계값 테스트` | `🧪 Test` `rule` | `test/33-L05-late-boundary-test` | `test: [L-05] 지각 판정 경계값 테스트 #33` |
+| 테스트만 추가 | `[L-05] 09:20 정각 입실 경계값 테스트` | `🧪 Test` `rule` | `test/33-L05-late-boundary-test` | `test: [L-05] 지각 판정 경계값 테스트 #33` |
 | 리팩터링 | `[L-06] Work24Importer 파싱을 스트림으로 정리` | `🔨 Refactor` `importer` | `refactor/40-L06-import-stream-parse` | `refactor: [L-06] Work24Importer 스트림 파싱 #40` |
 | 환경 설정 | `[환경] 패키지 이름 skeleton → com.latecatcher.app 변경` | `🌏 Environment` `config` `repository` | `chore/30-package-rename` | `chore: [환경] 패키지 이름 com.latecatcher.app으로 변경 #30` |
 | 문서 | `[문서] 노션 요구사항 명세 페이지 작성` | `🌏 Environment` `docs` | `docs/35-notion-requirements` | `docs: [문서] 노션 요구사항 명세 링크 추가 #35` |
@@ -728,7 +728,7 @@ git commit
 feat: 입실 시각으로 지각 여부 판정
 
 - course_tbl의 start_time보다 늦게 입실하면 LATE, 아니면 PRESENT로 판정한다.
-- 09:00:00 정각 입실이 PRESENT인지 경계값 테스트를 추가했다.
+- 09:20:00 정각 입실이 PRESENT인지 경계값 테스트를 추가했다.
 
 Refs #24
 ```
