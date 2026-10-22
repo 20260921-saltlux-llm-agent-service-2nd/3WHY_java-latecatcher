@@ -1,320 +1,156 @@
-USE smsdb;
+-- 지각 잡는 자바 샘플 데이터. schema.sql을 먼저 실행한다
+-- 출결은 2026-10-21(작성일 전날)까지만 넣는다. 계산 기준일이 어제이기 때문이다 (PLAN.md 3절)
+USE latedb;
 
 START TRANSACTION;
 
-SET @now = NOW();
+
+-- 과정 1행: 시각·기준 %는 DEFAULT(09:00~18:00, 3회 = 결석 1일, 80%)를 쓴다
+INSERT INTO course_tbl (
+    name,
+    start_date,
+    end_date
+)
+VALUES ('[솔트룩스]LLM 지능형 에이전트 서비스개발 부트캠프', '2026-09-29', '2027-03-24');
 
 
--- 회원 더미 데이터
+-- 회원: 팀 3명 + 미달 사례용 더미 1명
 INSERT INTO member_tbl (
     name,
     age,
     phone
 )
 VALUES
-    ('김철수', 25, '010-1111-1111'),
-    ('이영희', 30, '010-2222-2222'),
-    ('박지성', 43, '010-3333-3333'),
-    ('손흥민', 32, '010-4444-4444'),
-    ('김연아', 34, '010-5555-5555'),
-    ('류현진', 37, '010-6666-6666'),
-    ('박세리', 47, '010-7777-7777'),
-    ('이정재', 52, '010-8888-8888'),
-    ('송중기', 39, '010-9999-9999'),
-    ('전지현', 43, '010-0000-0000');
+    ('RY', 26, '010-1111-1111'),
+    ('YY', 31, '010-2222-2222'),
+    ('YI', 28, '010-3333-3333'),
+    ('홍길동', 35, '010-4444-4444');
 
 
--- 김철수: 넷플릭스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
+-- 수업일 캘린더: 훈련 기간의 평일을 모두 넣는다 (L-04와 같은 결과)
+SELECT start_date, end_date INTO @start, @end FROM course_tbl;
+
+INSERT INTO class_day_tbl (class_date)
+WITH RECURSIVE days AS (
+    SELECT @start AS d
+    UNION ALL
+    SELECT d + INTERVAL 1 DAY FROM days WHERE d < @end
 )
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-1111-1111'),
-           'NETFLIX',
-           'PREMIUM',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 MONTH),
-           TRUE
-       );
+SELECT d
+FROM days
+WHERE DAYOFWEEK(d) NOT IN (1, 7);   -- 1 = 일요일, 7 = 토요일
 
 
--- 김철수: 티빙
-INSERT INTO membership_tbl (
+-- 평일 공휴일은 수업일에서 뺀다. 수업일 120일 (고용24 총 훈련일수와 같다)
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '대체공휴일(개천절)' WHERE class_date = '2026-10-05';
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '한글날'            WHERE class_date = '2026-10-09';
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '성탄절'            WHERE class_date = '2026-12-25';
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '신정'              WHERE class_date = '2027-01-01';
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '설날'              WHERE class_date = '2027-02-08';
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '대체공휴일(설날)'  WHERE class_date = '2027-02-09';
+UPDATE class_day_tbl SET is_class_day = FALSE, note = '삼일절'            WHERE class_date = '2027-03-01';
+
+
+SET @ry   = (SELECT member_id FROM member_tbl WHERE phone = '010-1111-1111');
+SET @yy   = (SELECT member_id FROM member_tbl WHERE phone = '010-2222-2222');
+SET @yi   = (SELECT member_id FROM member_tbl WHERE phone = '010-3333-3333');
+SET @hong = (SELECT member_id FROM member_tbl WHERE phone = '010-4444-4444');
+
+
+-- RY: 모범 사례. 10월 기록 13일, 공결 1 → 출석률 100%
+INSERT INTO attendance_tbl (
     member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
+    attend_date,
+    check_in,
+    check_out,
+    status,
+    memo
 )
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-1111-1111'),
-           'TVING',
-           'STANDARD',
-           DATE_SUB(@now, INTERVAL 10 DAY),
-           DATE_ADD(@now, INTERVAL 20 DAY),
-           TRUE
-       );
+VALUES
+    (@ry, '2026-09-29', '09:08', '18:25', 'PRESENT', NULL),
+    (@ry, '2026-09-30', '09:11', '18:22', 'PRESENT', NULL),
+    (@ry, '2026-10-01', '09:07', '18:30', 'PRESENT', NULL),
+    (@ry, '2026-10-02', '09:15', '18:21', 'PRESENT', NULL),
+    (@ry, '2026-10-06', '09:10', '18:23', 'PRESENT', NULL),
+    (@ry, '2026-10-07', '09:12', '18:27', 'PRESENT', NULL),
+    (@ry, '2026-10-08', '09:09', '18:24', 'PRESENT', NULL),
+    (@ry, '2026-10-12', '09:13', '18:22', 'PRESENT', NULL),
+    (@ry, '2026-10-13', '09:06', '18:26', 'PRESENT', NULL),
+    (@ry, '2026-10-14', NULL,    NULL,    'EXCUSED', '병원 진료 (진단서 제출)'),
+    (@ry, '2026-10-15', '09:14', '18:21', 'PRESENT', NULL),
+    (@ry, '2026-10-16', '09:10', '18:25', 'PRESENT', NULL),
+    (@ry, '2026-10-19', '09:11', '18:23', 'PRESENT', NULL),
+    (@ry, '2026-10-20', '09:09', '18:28', 'PRESENT', NULL),
+    (@ry, '2026-10-21', '09:12', '18:22', 'PRESENT', NULL);
 
 
--- 이영희: 디즈니 플러스
-INSERT INTO membership_tbl (
+-- YY: 경계 사례. 10월 기록 12일 (10/16 미입력)
+--     결석 1 + floor((지각 3 + 조퇴 1 + 외출 1) / 3) = 환산 결석 2 → (12 - 2) / 12 = 83.3%
+--     지각 1번 더면 환산 결석 3 → 80% 아래
+INSERT INTO attendance_tbl (
     member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
+    attend_date,
+    check_in,
+    check_out,
+    status,
+    memo
 )
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-2222-2222'),
-           'DISNEY_PLUS',
-           'PREMIUM',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 YEAR),
-           TRUE
-       );
+VALUES
+    (@yy, '2026-09-29', '09:15', '18:22', 'PRESENT',     NULL),
+    (@yy, '2026-09-30', '09:17', '18:21', 'PRESENT',     NULL),
+    (@yy, '2026-10-01', '09:18', '18:23', 'PRESENT',     NULL),
+    (@yy, '2026-10-02', '09:27', '18:22', 'LATE',        NULL),
+    (@yy, '2026-10-06', '09:16', '18:21', 'PRESENT',     NULL),
+    (@yy, '2026-10-07', '09:35', '18:24', 'LATE',        '버스 지연'),
+    (@yy, '2026-10-08', '09:19', '18:22', 'PRESENT',     NULL),
+    (@yy, '2026-10-12', NULL,    NULL,    'ABSENT',      NULL),
+    (@yy, '2026-10-13', '09:14', '18:23', 'PRESENT',     NULL),
+    (@yy, '2026-10-14', '09:17', '18:21', 'OUTING',      '외출 14:00~15:30 은행'),
+    (@yy, '2026-10-15', '09:18', '17:30', 'EARLY_LEAVE', NULL),
+    (@yy, '2026-10-19', '09:52', '18:22', 'LATE',        NULL),
+    (@yy, '2026-10-20', '09:15', '18:25', 'PRESENT',     NULL),
+    (@yy, '2026-10-21', '09:16', '18:21', 'PRESENT',     NULL);
 
 
--- 박지성: 웨이브
-INSERT INTO membership_tbl (
+-- YI: 기록 없음 사례. 9월만 있고 10월 기록이 없다 (erd.md 7절의 예)
+INSERT INTO attendance_tbl (
     member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
+    attend_date,
+    check_in,
+    check_out,
+    status,
+    memo
 )
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-3333-3333'),
-           'WAVVE',
-           'BASIC',
-           DATE_SUB(@now, INTERVAL 27 DAY),
-           DATE_ADD(@now, INTERVAL 3 DAY),
-           TRUE
-       );
+VALUES
+    (@yi, '2026-09-29', '09:13', '18:24', 'PRESENT', NULL),
+    (@yi, '2026-09-30', '09:10', '18:22', 'PRESENT', NULL);
 
 
--- 박지성: 쿠팡플레이
-INSERT INTO membership_tbl (
+-- 홍길동: 미달 사례. 10월 기록 13일, 공결 1
+--     결석 2 + floor((지각 3 + 조퇴 1) / 3) = 환산 결석 3 → (13 - 1 - 3) / (13 - 1) = 75.0%
+INSERT INTO attendance_tbl (
     member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
+    attend_date,
+    check_in,
+    check_out,
+    status,
+    memo
 )
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-3333-3333'),
-           'COUPANG_PLAY',
-           'WOW',
-           DATE_SUB(@now, INTERVAL 3 MONTH),
-           DATE_ADD(@now, INTERVAL 9 MONTH),
-           TRUE
-       );
-
-
--- 손흥민: 만료된 넷플릭스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-4444-4444'),
-           'NETFLIX',
-           'STANDARD',
-           DATE_SUB(@now, INTERVAL 2 MONTH),
-           DATE_SUB(@now, INTERVAL 1 MONTH),
-           FALSE
-       );
-
-
--- 김연아: 애플TV 플러스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-5555-5555'),
-           'APPLE_TV_PLUS',
-           'STANDARD',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 YEAR),
-           TRUE
-       );
-
-
--- 류현진: 넷플릭스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-6666-6666'),
-           'NETFLIX',
-           'BASIC',
-           DATE_SUB(@now, INTERVAL 27 DAY),
-           DATE_ADD(@now, INTERVAL 3 DAY),
-           TRUE
-       );
-
-
--- 박세리: 디즈니 플러스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-7777-7777'),
-           'DISNEY_PLUS',
-           'STANDARD',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 YEAR),
-           TRUE
-       );
-
-
--- 박세리: 웨이브
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-7777-7777'),
-           'WAVVE',
-           'PREMIUM',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 MONTH),
-           TRUE
-       );
-
-
--- 이정재: 만료된 티빙
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-8888-8888'),
-           'TVING',
-           'BASIC',
-           DATE_SUB(@now, INTERVAL 1 MONTH),
-           DATE_SUB(@now, INTERVAL 1 DAY),
-           FALSE
-       );
-
-
--- 송중기: 넷플릭스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-9999-9999'),
-           'NETFLIX',
-           'PREMIUM',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 MONTH),
-           TRUE
-       );
-
-
--- 송중기: 애플TV 플러스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-9999-9999'),
-           'APPLE_TV_PLUS',
-           'STANDARD',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 MONTH),
-           TRUE
-       );
-
-
--- 전지현: 디즈니 플러스
-INSERT INTO membership_tbl (
-    member_id,
-    ott_type,
-    plan_name,
-    enroll_date,
-    expiry_date,
-    active
-)
-VALUES (
-           (SELECT member_id
-            FROM member_tbl
-            WHERE phone = '010-0000-0000'),
-           'DISNEY_PLUS',
-           'PREMIUM',
-           @now,
-           DATE_ADD(@now, INTERVAL 1 YEAR),
-           TRUE
-       );
+VALUES
+    (@hong, '2026-09-29', '09:18', '18:21', 'PRESENT',     NULL),
+    (@hong, '2026-09-30', '09:41', '18:23', 'LATE',        NULL),
+    (@hong, '2026-10-01', '09:17', '18:22', 'PRESENT',     NULL),
+    (@hong, '2026-10-02', NULL,    NULL,    'ABSENT',      NULL),
+    (@hong, '2026-10-06', '09:32', '18:21', 'LATE',        NULL),
+    (@hong, '2026-10-07', '09:19', '18:24', 'PRESENT',     NULL),
+    (@hong, '2026-10-08', NULL,    NULL,    'EXCUSED',     '예비군 훈련'),
+    (@hong, '2026-10-12', '09:15', '18:22', 'PRESENT',     NULL),
+    (@hong, '2026-10-13', '09:18', '16:50', 'EARLY_LEAVE', NULL),
+    (@hong, '2026-10-14', '09:16', '18:21', 'PRESENT',     NULL),
+    (@hong, '2026-10-15', NULL,    NULL,    'ABSENT',      NULL),
+    (@hong, '2026-10-16', '10:00', '18:23', 'LATE',        NULL),
+    (@hong, '2026-10-19', '09:17', '18:22', 'PRESENT',     NULL),
+    (@hong, '2026-10-20', '09:25', '18:21', 'LATE',        NULL),
+    (@hong, '2026-10-21', '09:19', '18:25', 'PRESENT',     NULL);
 
 COMMIT;
