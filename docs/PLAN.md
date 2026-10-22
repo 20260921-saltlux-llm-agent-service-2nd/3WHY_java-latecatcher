@@ -42,7 +42,7 @@
 
 | 규칙 | 기본값 (확인 필요) | 설정 컬럼 |
 | --- | --- | --- |
-| 수업 시작 / 종료 시각 | 09:00 / 18:00 | `start_time`, `end_time` |
+| 수업 시작 / 종료 시각 | **09:20 / 18:20** (slx-ai-campus, 확인됨) | `start_time`, `end_time` |
 | 지각 | 시작 시각 이후 입실 | — |
 | 조퇴 | 종료 시각 이전 퇴실 | — |
 | 퇴실 기록 없음 | **결석** (고용24 판정과 같음) | — |
@@ -358,8 +358,8 @@ CREATE TABLE course_tbl (                           -- 과정 설정, 1행만 �
     name                  VARCHAR(100) NOT NULL,
     start_date            DATE NOT NULL,
     end_date              DATE NOT NULL,
-    start_time            TIME NOT NULL DEFAULT '09:00:00',
-    end_time              TIME NOT NULL DEFAULT '18:00:00',
+    start_time            TIME NOT NULL DEFAULT '09:20:00',  -- slx-ai-campus 수업 시작
+    end_time              TIME NOT NULL DEFAULT '18:20:00',  -- slx-ai-campus 수업 종료
     partial_per_absence   INT  NOT NULL DEFAULT 3,   -- 지각·조퇴·외출 n회 = 결석 1일
     allowance_threshold   INT  NOT NULL DEFAULT 80,  -- 장려금 기준 %
     completion_threshold  INT  NOT NULL DEFAULT 80,  -- 수료 기준 %
