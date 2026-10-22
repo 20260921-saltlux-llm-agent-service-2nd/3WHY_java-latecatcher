@@ -26,7 +26,20 @@
 | 머지 커밋 | PR 제목 + 변경 사항 + `Closed #이슈번호` | `feat: [L-05] 출결 입력과 상태 판정 #24` … `Closed #24` |
 | 결과 | 이슈 자동 close | #24 닫힘 |
 
-전체 과정을 명령어와 함께 따라가 보려면 [8절](#8-전체-예시--l-05-출결-입력을-처음부터-끝까지)을 본다.
+전체 과정을 화면 순서와 명령어로 따라가 보려면 [8절](#8-전체-예시--l-05-출결-입력을-처음부터-끝까지)을 본다.
+
+### 도구 — GitHub 사이트가 기본
+
+| 단계 | 기본: GitHub 사이트 | 옵션: gh CLI / 터미널 |
+| --- | --- | --- |
+| 이슈 만들기 | **Issues → New issue** → 템플릿 고르기 ([4절](#만드는-방법)) | `gh issue create` |
+| 브랜치 만들기 | **이슈 화면 → Development → Create a branch** ([2절](#브랜치-만들기--이슈-화면에서)) | `gh issue develop` / `git switch -c` |
+| 커밋 · main pull · push | 사이트에서는 할 수 없다. **터미널** 또는 IntelliJ의 Git 메뉴 | `git commit`, `git pull`, `git push` |
+| PR 만들기 | **Compare & pull request** ([5절](#pr-만드는-방법)) | `gh pr create` |
+| 리뷰 · approve | **Files changed → Review changes → Approve** ([6절](#6-code-review)) | `gh pr review --approve` |
+| 머지 | **Merge pull request** → 메시지 고치기 → **Confirm merge** ([5절](#머지-커밋-메시지)) | `gh pr merge --merge` |
+
+어느 방법을 쓰든 이름, 라벨, 번호 연결 결과는 같아야 한다. 각 절은 사이트 방법을 먼저 적고, gh CLI·터미널 방법을 **옵션**으로 덧붙인다.
 
 ---
 
@@ -164,16 +177,47 @@ docs/35-notion-requirements           # [문서] — 기능 번호 없음
 
 - `main`에는 **정말 필요하고 안전한 코드만** 있어야 한다.
 - `main`에 직접 push하지 않는다. (브랜치 보호 설정으로 막아 둔다)
-- 브랜치는 항상 **최신 `main`에서** 딴다. 작업이 길어지면 `main`을 자주 당겨온다.
+- 브랜치는 **이슈를 만든 뒤, 그 이슈 화면에서** 최신 `main`을 기준으로 만든다 (아래). 작업이 길어지면 `main`을 자주 당겨온다.
 - **push하기 전에 반드시 최신 `main`을 pull해서 충돌이 없는지 확인한다.** 아래 순서를 지킨다.
-- 이슈 하나에 브랜치 하나. 이름을 잘못 지었으면 새로 만들지 말고 바꾼다 (`git branch -m 새이름`).
+- 이슈 하나에 브랜치 하나. 이름을 잘못 지었으면 새로 만들지 말고 바꾼다 — 사이트: 저장소 **Branches** 화면에서 브랜치 옆 연필 아이콘 / 터미널: `git branch -m 새이름` 후 다시 push.
 - 머지된 브랜치는 지운다.
+
+### 브랜치 만들기 — 이슈 화면에서
+
+**기본 — GitHub 사이트**
+
+1. 이슈 화면 오른쪽 사이드바의 **Development** → **Create a branch**를 누른다.
+2. **Branch name**에는 GitHub가 제목으로 만든 이름(`24-l-05-출결-입력-…`)이 들어 있다. **위 이름 규칙대로 고친다** — `feat/24-L05-attendance-checkin`. 한글이 든 자동 이름을 그대로 두지 않는다.
+3. **Change branch source**가 `main`인지 확인한다.
+4. **What's next**에서 **Checkout locally**를 고르고 **Create branch**를 누른다.
+5. 로컬에서 그 브랜치를 가져온다.
+
+   ```bash
+   git fetch origin
+   git switch feat/24-L05-attendance-checkin
+   ```
+
+이슈 화면에서 만든 브랜치는 이슈의 **Development** 칸에 연결되고, 그 브랜치로 연 PR도 이슈에 자동으로 연결된다.
+
+**옵션 — gh CLI** (이슈 연결까지 사이트와 같다)
+
+```bash
+gh issue develop 24 --name feat/24-L05-attendance-checkin --base main --checkout
+```
+
+**옵션 — 터미널만** (이슈와 브랜치는 연결되지 않고, PR 본문의 `Closed #24`로만 이어진다)
+
+```bash
+git switch main
+git pull origin main
+git switch -c feat/24-L05-attendance-checkin
+```
 
 ### 작업 순서 — 구현 → 커밋 → main pull → 충돌 확인 → push
 
 | 순서 | 할 일 | 명령 |
 | --- | --- | --- |
-| 1 | 최신 `main`에서 브랜치를 딴다 | `git switch main` → `git pull origin main` → `git switch -c 브랜치이름` |
+| 1 | 이슈 화면에서 브랜치를 만들고 로컬로 가져온다 | (사이트) **Development → Create a branch** → `git fetch origin` → `git switch 브랜치이름` ([위](#브랜치-만들기--이슈-화면에서)) |
 | 2 | 구현하고 커밋한다 | `git add 파일` → `git commit` |
 | 3 | **최신 `main`을 내 브랜치로 pull한다** | `git pull origin main` |
 | 4 | **충돌이 없는지 확인한다** | `git status`에 `both modified`가 없어야 한다 |
@@ -182,10 +226,9 @@ docs/35-notion-requirements           # [문서] — 기능 번호 없음
 | 7 | 그 다음에 push한다 | `git push -u origin 브랜치이름` |
 
 ```bash
-# 1. 브랜치 만들기
-git switch main
-git pull origin main
-git switch -c feat/24-L05-attendance-checkin
+# 1. 이슈 화면에서 만든 브랜치를 로컬로 가져오기
+git fetch origin
+git switch feat/24-L05-attendance-checkin
 
 # 2. 구현, 커밋
 git add src/main/java/com/latecatcher/app/rule/AttendanceRule.java
@@ -372,6 +415,26 @@ done
 | 🌏 Environment | 🤔 Describe (현재 상황) / ✅ Tasks / 🙋🏻 More |
 | 💬 Suggestion | 💬 주제 / 🤔 선택지 / 🙋🏻 More |
 
+### 만드는 방법
+
+**기본 — GitHub 사이트**
+
+1. **Issues** → **New issue** → 종류에 맞는 템플릿(✨ Feature, 🐞 Bug …)을 고른다.
+2. 제목 앞머리(`[L-00] `, `[환경] ` …)와 종류 라벨이 미리 채워져 있다. 제목을 고치고 본문 템플릿을 채운다.
+3. 오른쪽 **Labels**에서 파트 라벨을 붙이고, **Assignees**에 담당자를 지정한다.
+4. **Create**를 누르면 GitHub가 번호를 붙인다. 이어서 이 이슈 화면에서 브랜치를 만든다 ([2절](#브랜치-만들기--이슈-화면에서)).
+
+**옵션 — gh CLI**
+
+```bash
+gh issue create \
+  --title "[L-05] 출결 입력 — 입실·퇴실 시각으로 상태 판정" \
+  --label "✨ Feature,rule,controller" --assignee @me \
+  --body-file issue.md          # 템플릿 항목을 채운 파일
+```
+
+본문에 백틱(`` ` ``)이 있으면 `--body "…"` 안에서 셸이 명령으로 실행해 버린다. 본문은 파일이나 `--body-file - <<'EOF' … EOF`로 넘긴다.
+
 #### Feature 이슈 예
 
 ```markdown
@@ -442,7 +505,7 @@ PLAN.md 4절 기능 표를 바탕으로 기능별 입력, 검증, 출력 메시�
 
 PR 본문은 **`.github/PULL_REQUEST_TEMPLATE.md`가 정본**이다. PR을 열면 자동으로 채워지는 네 항목을 그대로 쓰고, 항목을 추가하거나 지우지 않는다. 템플릿을 바꾸고 싶으면 템플릿 파일을 PR로 고치고, 이 문서를 그에 맞춘다.
 
-1. **이슈를 먼저** 만든다. 무엇을 구현할지, **예상 작업 시간**까지 이슈에 적은 뒤 브랜치를 딴다.
+1. **이슈를 먼저** 만든다. 무엇을 구현할지, **예상 작업 시간**까지 이슈에 적은 뒤 **그 이슈 화면에서** 브랜치를 만든다 ([2절](#브랜치-만들기--이슈-화면에서)).
 2. PR 제목은 **`태그: [기능번호] 제목 #이슈번호`** 다. 기능 번호가 없으면 `[환경]`, `[문서]`를 쓴다.
 3. 라벨은 이슈와 같은 것을 붙인다. 이슈에 없던 패키지를 더 바꿨으면 그 파트 라벨을 추가한다 ([3절](#3-label-rule)).
 4. PR 하나는 **동작하는 기능 하나**. 리뷰어가 20분 안에 읽을 수 있는 크기로 유지한다. 커지면 이슈를 쪼갠다.
@@ -463,6 +526,28 @@ docs: [문서] 노션 요구사항 명세 링크 추가 #35
 | `feat: MemberController 로그아웃` | 이슈 번호와 기능 번호가 없음 | `feat: [L-10] 로그아웃 #12` |
 
 > GitHub는 브랜치 이름으로 PR 제목을 자동으로 채운다. **PR을 만들 때 제목을 반드시 고친다.**
+
+### PR 만드는 방법
+
+push까지는 터미널에서 한다 ([2절 작업 순서](#작업-순서--구현--커밋--main-pull--충돌-확인--push)).
+
+**기본 — GitHub 사이트**
+
+1. push한 뒤 저장소 화면에 뜨는 **Compare & pull request**를 누른다. 보이지 않으면 **Pull requests → New pull request**에서 base `main` ← compare `내 브랜치`를 고른다.
+2. **제목을 규칙대로 고친다** — `feat: [L-05] 출결 입력과 상태 판정 #24`.
+3. 본문에는 템플릿이 채워져 있다. 아래 "템플릿 항목별로 쓰는 것"대로 쓴다.
+4. 오른쪽 **Reviewers**에 팀원 두 명, **Labels**에 이슈와 같은 라벨, **Assignees**에 본인을 넣는다.
+5. **Create pull request**를 누른다.
+
+**옵션 — gh CLI**
+
+```bash
+gh pr create --base main \
+  --title "feat: [L-05] 출결 입력과 상태 판정 #24" \
+  --label "✨ Feature,rule,controller" --assignee @me \
+  --reviewer 팀원1아이디,팀원2아이디 \
+  --body-file pr.md            # 템플릿 4개 항목을 채운 파일
+```
 
 ### 템플릿 항목별로 쓰는 것
 
@@ -536,7 +621,25 @@ Closed #26
 
 - 저장소 설정에서 머지 커밋 입력창이 **PR 제목 + 본문으로 미리 채워지게** 해 둔다 ([7절](#7-github-저장소-설정-체크리스트)). 작성자는 본문에서 "변경 사항" 목록과 `Closed #` 줄만 남기고 나머지를 지운다.
 - 머지는 **approve 2개가 모인 뒤 PR 작성자가** 누른다. 메시지를 고쳐 쓰는 책임도 작성자에게 있다.
-- 머지 후 브랜치는 삭제한다.
+- 원격 브랜치는 머지 후 자동으로 지워진다 ([7절](#7-github-저장소-설정-체크리스트)). 로컬 브랜치는 아래처럼 직접 지운다.
+
+**기본 — GitHub 사이트:** PR 화면 아래 **Merge pull request** → 미리 채워진 제목·본문을 위 규칙대로 고친다 → **Confirm merge**.
+
+**옵션 — gh CLI**
+
+```bash
+gh pr merge 27 --merge \
+  --subject "feat: [L-05] 출결 입력과 상태 판정 #24" \
+  --body-file merge-body.md     # "변경 사항" 목록 + Closed #24
+```
+
+**머지 후 로컬 정리 (터미널)**
+
+```bash
+git switch main
+git pull origin main
+git branch -d feat/24-L05-attendance-checkin
+```
 
 ---
 
@@ -546,6 +649,9 @@ Closed #26
 - **approve 2개 이상**이어야 머지할 수 있다. (main 브랜치 보호 규칙으로 강제)
   - 3명 팀이므로 **작성자를 제외한 두 명이 모두 approve** 해야 한다.
   - 본인 PR은 본인이 approve할 수 없다.
+- approve 하는 법
+  - **기본 — GitHub 사이트:** PR의 **Files changed** 탭 → 줄 옆 `+`로 코멘트 → **Review changes** → **Approve** (고칠 점이 있으면 **Request changes**) → **Submit review**
+  - **옵션 — gh CLI:** `gh pr review 27 --approve --body "확인 방법대로 돌려 봄"` / 고칠 점이 있으면 `--request-changes --body "…"`
 - 리뷰 코멘트는 "왜"를 함께 쓴다. 단순 취향 차이는 `nit:` 접두어로 표시해 필수 아님을 밝힌다.
 - 리뷰어가 볼 것:
   - [ ] PR 제목이 `태그: [기능번호] 제목 #이슈번호` 형식이고, 이슈와 기능 번호가 맞나
@@ -588,21 +694,28 @@ gh api repos/20260921-saltlux-llm-agent-service-2nd/3WHY_java-latecatcher \
 
 ### ① 이슈 만들기 → GitHub가 #24를 붙인다
 
+**사이트:** **Issues → New issue → ✨ Feature** → 제목 `[L-05] 출결 입력 — 입실·퇴실 시각으로 상태 판정` → 본문 템플릿 채우기 → **Labels**에 `rule` `controller` 추가, **Assignees** 본인 → **Create**
+
+옵션 (gh CLI):
+
 ```bash
 gh issue create \
   --title "[L-05] 출결 입력 — 입실·퇴실 시각으로 상태 판정" \
-  --label "✨ Feature" --label "rule" --label "controller" \
+  --label "✨ Feature,rule,controller" --assignee @me \
   --body-file issue.md
 # → https://github.com/…/issues/24
 ```
 
-### ② 브랜치 만들기
+### ② 이슈 화면에서 브랜치 만들기
+
+**사이트:** 이슈 #24 화면 → **Development → Create a branch** → 이름을 `feat/24-L05-attendance-checkin`으로 고침 → source `main` 확인 → **Checkout locally** → **Create branch**
 
 ```bash
-git switch main
-git pull origin main
-git switch -c feat/24-L05-attendance-checkin
+git fetch origin
+git switch feat/24-L05-attendance-checkin
 ```
+
+옵션 (gh CLI): `gh issue develop 24 --name feat/24-L05-attendance-checkin --base main --checkout`
 
 ### ③ 커밋 — 작게 여러 번, 마지막 줄에 `Refs #24`
 
@@ -641,15 +754,22 @@ git status                 # "both modified"가 없어야 한다. 있으면 2절
 
 ```bash
 git push -u origin feat/24-L05-attendance-checkin
-gh pr create \
+```
+
+**사이트:** 저장소 화면의 **Compare & pull request** → 제목을 `feat: [L-05] 출결 입력과 상태 판정 #24`로 고침 → 템플릿 4개 항목 채우기 (관련 이슈번호에 `Closed #24`) → **Reviewers** 팀원 두 명, **Labels** `✨ Feature` `rule` `controller` → **Create pull request**
+
+옵션 (gh CLI):
+
+```bash
+gh pr create --base main \
   --title "feat: [L-05] 출결 입력과 상태 판정 #24" \
-  --label "✨ Feature" --label "rule" --label "controller"
-# 본문은 PR 템플릿 4개 항목을 채운다. 관련 이슈번호에 "Closed #24"
+  --label "✨ Feature,rule,controller" --reviewer 팀원1아이디,팀원2아이디 \
+  --body-file pr.md
 ```
 
 ### ⑥ 리뷰 → approve 2개 → 작성자가 머지
 
-머지 메시지 입력창을 다음처럼 고친다.
+리뷰어 두 명이 **Files changed → Review changes → Approve → Submit review**를 한다. 작성자가 **Merge pull request**를 누르고, 미리 채워진 입력창을 다음처럼 고친 뒤 **Confirm merge**를 누른다.
 
 ```text
 feat: [L-05] 출결 입력과 상태 판정 #24
@@ -658,6 +778,14 @@ feat: [L-05] 출결 입력과 상태 판정 #24
 - 같은 날짜 중복 입력은 저장하지 않고 안내한다.
 
 Closed #24
+```
+
+머지 후 로컬 정리:
+
+```bash
+git switch main
+git pull origin main
+git branch -d feat/24-L05-attendance-checkin
 ```
 
 ### ⑦ 결과 — `main`의 로그만 보고도 기능과 이슈를 찾을 수 있다
