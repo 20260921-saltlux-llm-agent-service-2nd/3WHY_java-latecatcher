@@ -1,4 +1,4 @@
-package skeleton.model;
+package latecatcher.model;
 
 public class ClassDay {
 }
