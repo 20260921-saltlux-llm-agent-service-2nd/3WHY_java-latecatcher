@@ -134,6 +134,7 @@ public class Application {
                     System.out.println("올바른 메뉴 번호를 입력하세요.");
                     break;
             }
+
         }
     }
 
@@ -238,6 +239,17 @@ public class Application {
             } catch (DateTimeParseException e) {
                 System.out.println("[오류] 잘못된 시간 형식입니다. HH:mm 형식(예: 09:00)으로 다시 입력해 주세요.");
             }
+        }
+    }
+    private static String readPhone(Scanner scanner, MemberController controller) {
+        while (true) {
+            System.out.print("휴대폰 번호 (예: 010-1234-5678, 취소: Enter): ");
+            String phone = scanner.nextLine().trim();
+
+            if (phone.isEmpty() || controller.isValidPhone(phone)) {
+                return phone;
+            }
+            System.out.println("010-1234-5678 형식으로 입력해 주세요.");
         }
     }
 }

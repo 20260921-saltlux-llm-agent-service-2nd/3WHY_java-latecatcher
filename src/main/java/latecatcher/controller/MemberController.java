@@ -1,8 +1,9 @@
 package latecatcher.controller;
 
-
 import latecatcher.model.Course;
+import latecatcher.model.Member;
 import latecatcher.repository.CourseRepository;
+import latecatcher.repository.MemberRepository;
 import latecatcher.view.MemberView;
 
 import java.sql.Connection;
@@ -17,8 +18,15 @@ public class MemberController {
     private int nextCourseId = 1; // 등록된 과정 자동 증가 ID 카운터
     private final CourseRepository courseRepository;
     private final MemberView memberView;
+    private final MemberRepository memberRepository;
+
+    private Member loginMember;
+
+    // member_tbl의 ck_member_tbl_phone CHECK와 같은 정규식
+    private static final String PHONE_PATTERN = "^010-[0-9]{4}-[0-9]{4}$";
 
     public MemberController() {
+        memberRepository = new MemberRepository();
         memberView = new MemberView();
         courseRepository = new CourseRepository();
     }
@@ -32,8 +40,8 @@ public class MemberController {
      * 중복 회원이 없으면 ID가 0인 Member를 생성해 memberRepository.save()로 저장한다.
      * 저장 결과에 따라 가입 성공 또는 실패 메시지를 출력한다.
      */
-    public void signUp(String name, int age, String phone) {
-    }
+    public void signUp(String name, int age, String phone) {}
+
 
 
     /*
@@ -44,8 +52,27 @@ public class MemberController {
      * 회원이 없으면 "등록되지 않은 휴대폰 번호입니다."를 출력하고 false를 반환한다.
      */
     public boolean login(String phone) {
+
+        if (!isValidPhone(phone)) {
+            memberView.displayMessage("010-1234-5678 형식으로 입력해 주세요.");
+            return false;
+        }
+
+        Member member = memberRepository.findByPhone(phone);
+
+        if (member == null) {
+            memberView.displayMessage("등록되지 않은 휴대폰 번호입니다.");
+            return false;
+        }
+
+        loginMember = member;
+        memberView.displayMessage(loginMember.getName() + "님, 환영합니다.");
         return true;
     }
+    public boolean isValidPhone(String phone) {
+        return phone != null && phone.matches(PHONE_PATTERN);
+    }
+
 
 
     /*
