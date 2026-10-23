@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @ToString
 public class Course {
-    private int cousreId;
+    private int courseId;
     private String name; // 강의명
     private LocalDate startDate; // 강의 시작일
     private LocalDate endDate; // 강의 종료일
