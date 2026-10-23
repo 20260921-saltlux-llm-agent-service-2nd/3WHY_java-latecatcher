@@ -8,7 +8,7 @@ assignees: ""
 
 <!--
 제목: [환경] 또는 [문서] + 한 줄
-  예) [환경] 패키지 이름 skeleton → com.latecatcher.app 변경
+  예) [환경] 패키지 이름 latecatcher → com.latecatcher.app 변경
   예) [문서] 노션 요구사항 명세 페이지 작성
 라벨: 설정은 config, 문서는 docs 라벨을 추가해 주세요.
 브랜치: chore/이슈번호-영문이름 (설정) / docs/이슈번호-영문이름 (문서)

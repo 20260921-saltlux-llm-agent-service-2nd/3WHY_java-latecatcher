@@ -317,7 +317,7 @@ flowchart LR
 
 ## 6. 스켈레톤 → 지각 잡는 자바 변환표
 
-현재 레포 `src/main/java/skeleton/` 기준. 패키지 이름은 0단계에서 `com.latecatcher.app`으로 바꾼다. 폴더 구조는 [9절](#9-프로젝트-구조).
+현재 레포 `latecatcher` 기준. 패키지 이름은 0단계에서 `com.latecatcher.app`으로 바꾼다. 폴더 구조는 [9절](#9-프로젝트-구조).
 
 | 스켈레톤 (OTT 구독관리) | 지각 잡는 자바 | 바뀌는 것 |
 | --- | --- | --- |
@@ -648,7 +648,7 @@ java-latecatcher/
 
   ```java
   // 변경 전 (스켈레톤)
-  private static final String QUERY_FILE = "src/main/java/skeleton/mapper/member-query.xml";
+  private static final String QUERY_FILE = "src/main/java/latecatcher/mapper/member-query.xml";
   // 변경 후
   private static final String QUERY_FILE = "src/main/java/com/latecatcher/app/mapper/member-query.xml";
   ```

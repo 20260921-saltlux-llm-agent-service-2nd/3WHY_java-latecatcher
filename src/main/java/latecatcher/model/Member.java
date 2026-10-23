@@ -1,4 +1,4 @@
-package skeleton.model;
+package latecatcher.model;
 
 
 import lombok.AllArgsConstructor;

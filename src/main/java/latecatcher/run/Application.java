@@ -1,6 +1,6 @@
-package skeleton.run;
+package latecatcher.run;
 
-import skeleton.controller.MemberController;
+import latecatcher.controller.MemberController;
 
 import java.util.NoSuchElementException;
 import java.util.Scanner;

@@ -1,4 +1,4 @@
-package skeleton.common;
+package latecatcher.common;
 
 import java.io.FileReader;
 import java.io.IOException;
