@@ -24,28 +24,31 @@ public class MemberController {
         // 1. 빈 값과 나이 검사
         if (name == null || name.isEmpty() || phone == null || phone.isEmpty()) {
             memberView.displayMessage("이름과 휴대폰 번호를 입력해 주세요.");
-            return false;
+            return;
         }
-        
+        if (age <= 0) {
+            memberView.displayMessage("올바른 나이를 입력해 주세요.");
+            return;
+        }
+
         // 2. 휴대폰 번호 형식 검사 (DB CHECK와 같은 정규식)
         if (!isValidPhone(phone)) {
             memberView.displayMessage("010-1234-5678 형식으로 입력해 주세요.");
-            return false;
+            return;
         }
-        
+
         // 3. 이미 등록된 휴대폰 번호인지 검사
         if (memberRepository.findByPhone(phone) != null) {
             memberView.displayMessage("이미 등록된 휴대폰 번호입니다.");
-            return false;
+            return;
         }
-        
+
         // 4. 저장 결과에 따라 가입 성공 또는 실패 메시지를 출력
         if (memberRepository.save(new Member(0, name, age, phone))) {
             memberView.displayMessage("가입되었습니다.");
-            return true;
+            return;
         }
         memberView.displayMessage("가입에 실패했습니다.");
-        return false;
     }
 
 
