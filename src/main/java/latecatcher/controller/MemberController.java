@@ -1,8 +1,4 @@
-package skeleton.controller;
-
-import skeleton.model.Member;
-
-
+package latecatcher.controller;
 
 
 // 사용자 입력과 repository/view 사이의 흐름을 조정한다.
