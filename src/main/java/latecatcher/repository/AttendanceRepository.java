@@ -1,4 +1,4 @@
-package skeleton.repository;
+package latecatcher.repository;
 
 public class AttendanceRepository {
 }

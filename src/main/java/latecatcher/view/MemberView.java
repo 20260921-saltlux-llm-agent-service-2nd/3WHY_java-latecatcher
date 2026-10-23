@@ -1,4 +1,4 @@
-package skeleton.view;
+package latecatcher.view;
 
 public class MemberView {
 }
