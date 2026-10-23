@@ -50,31 +50,39 @@ public class MemberRepository {
         return null;
     }
 
-    /*
-     * 회원가입
-     *
-     * Member의 name, age, phone을 member_tbl에 INSERT한다.
-     * member_id는 AUTO_INCREMENT이므로 INSERT 컬럼에서 제외한다.
-     * JDBCTemplate으로 Connection을 얻고 PreparedStatement를 사용한다.
-     * executeUpdate() 결과가 1이면 true, 0이면 false를 반환한다.
-     * SQL은 prop.getProperty("insertMember")로 조회한다.
-     * JDBC 자원은 try-with-resources로 닫고 SQLException은 원인을 포함한
-     * IllegalStateException으로 변환한다.
-     */
+    /** 회원가입 **/
     public boolean save(Member member) {
-        return false;
+        String sql = prop.getProperty("insertMember");
+
+        try (Connection con = JDBCTemplate.getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
+
+            pstmt.setString(1, member.getName());
+            pstmt.setInt(2, member.getAge());
+            pstmt.setString(3, member.getPhone());
+
+            int result = pstmt.executeUpdate();
+            return result == 1;
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("회원 저장에 실패했습니다.", e);
+        }
     }
 
-    /* 회원 탈퇴
-     *
-     * member_id가 일치하는 회원을 member_tbl에서 DELETE한다.
-     * 회원의 출석 기록은 외래 키의 ON DELETE CASCADE 제약 조건으로 함께 삭제된다.
-     * PreparedStatement를 사용하고 executeUpdate() 결과가 1이면 true를 반환한다.
-     * JDBC 자원은 try-with-resources로 닫고 SQLException은 원인을 포함한
-     * IllegalStateException으로 변환한다.
-     * SQL은 prop.getProperty("deleteMemberById")로 조회한다.
-     */
+    /** 회원 탈퇴 **/
     public boolean deleteById(int memberId) {
-        return false;
+       String sql = prop.getProperty("deleteMemberById");
+
+       try(Connection con = JDBCTemplate.getConnection();
+           PreparedStatement pstmt = con.prepareStatement(sql)){
+
+            pstmt.setInt(1, memberId);
+
+            int result = pstmt.executeUpdate();
+            return result == 1;
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("회원 삭제에 실패했습니다.", e);
+        }
     }
 }
