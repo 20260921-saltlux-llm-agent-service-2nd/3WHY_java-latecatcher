@@ -122,8 +122,6 @@ public class MemberController {
             return;
         }
 
-        course.setCousreId(nextCourseId);
-
         // 6. DB 커넥션 획득 및 repository 메서드 호출
         course.setCousreId(nextCourseId);  // Course 객체에 현재 카운터 번호 세팅
 
