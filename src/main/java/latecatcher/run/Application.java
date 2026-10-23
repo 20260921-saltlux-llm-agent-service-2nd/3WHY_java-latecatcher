@@ -67,10 +67,11 @@ public class Application {
     private static boolean login(Scanner scanner, MemberController controller) {
         System.out.println();
         System.out.println("===== 로그인 =====");
-        System.out.print("휴대폰 번호 (예: 010-1234-5678): ");
-        String phone = scanner.nextLine().trim();
-        System.out.println("준비중입니다.");
-        return true;
+        String phone = readPhone(scanner, controller);
+        if (phone.isEmpty()){
+            return false;
+        }
+        return controller.login(phone);
     }
 
     private static boolean runAttendanceTrackingMenu(Scanner scanner, MemberController controller) {
@@ -145,6 +146,17 @@ public class Application {
             } catch (NumberFormatException e) {
                 System.out.println("숫자를 입력하세요.");
             }
+        }
+    }
+    private static String readPhone(Scanner scanner, MemberController controller) {
+        while (true) {
+            System.out.print("휴대폰 번호 (예: 010-1234-5678, 취소: Enter): ");
+            String phone = scanner.nextLine().trim();
+
+            if (phone.isEmpty() || controller.isValidPhone(phone)) {
+                return phone;
+            }
+            System.out.println("010-1234-5678 형식으로 입력해 주세요.");
         }
     }
 }
