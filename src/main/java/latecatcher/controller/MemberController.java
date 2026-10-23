@@ -2,9 +2,22 @@ package latecatcher.controller;
 
 import latecatcher.model.Member;
 import latecatcher.repository.MemberRepository;
+import latecatcher.view.MemberView;
 
 // 사용자 입력과 repository/view 사이의 흐름을 조정한다.
 public class MemberController {
+
+    private final MemberRepository memberRepository;
+    private final MemberView memberView;
+    private Member loginMember;
+
+    // member_tbl의 ck_member_tbl_phone CHECK와 같은 정규식
+    private static final String PHONE_PATTERN = "^010-[0-9]{4}-[0-9]{4}$";
+
+    public MemberController() {
+        memberRepository = new MemberRepository();
+        memberView = new MemberView();
+    }
 
     /*
      *
@@ -19,7 +32,6 @@ public class MemberController {
 
 
 
-
     /*
      * L-02 휴대폰 번호 로그인
      *
@@ -28,7 +40,25 @@ public class MemberController {
      * 회원이 없으면 "등록되지 않은 휴대폰 번호입니다."를 출력하고 false를 반환한다.
      */
     public boolean login(String phone) {
+
+        if (!isValidPhone(phone)) {
+            memberView.displayMessage("010-1234-5678 형식으로 입력해 주세요.");
+            return false;
+        }
+
+        Member member = memberRepository.findByPhone(phone);
+
+        if (member == null) {
+            memberView.displayMessage("등록되지 않은 휴대폰 번호입니다.");
+            return false;
+        }
+
+        loginMember = member;
+        memberView.displayMessage(loginMember.getName() + "님, 환영합니다.");
         return true;
+    }
+    public boolean isValidPhone(String phone) {
+        return phone != null && phone.matches(PHONE_PATTERN);
     }
 
 

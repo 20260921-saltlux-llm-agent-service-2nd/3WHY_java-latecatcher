@@ -2,21 +2,19 @@
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
     <comment>MemberRepository SQL</comment>
-
-    <!-- TODO: 신규 회원 저장 SQL을 작성하세요. -->
-    <entry key="insertMember">
-        insert into member_tbl (
+    <entry key="selectMemberByPhone">
+        SELECT
+        member_id,
         name,
         age,
         phone
-        ) values (
-        ?,
-        ?,
-        ?
-        )
+        FROM
+        member_tbl
+        WHERE
+        phone = ?
     </entry>
 
-    <!-- TODO: member_id로 회원을 삭제하는 SQL을 작성하세요. -->
+    <!-- TODO: 회원을 삭제하는 SQL을 작성하세요. -->
     <entry key="deleteMemberById">
         delete from member_tbl
         where member_id = ?

@@ -8,6 +8,11 @@ public class MemberView {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
+
+    public void displayMessage(String message) {
+        System.out.println(message);
+    }
+
     /*
      * 문제 VIEW-1. 회원가입
      *

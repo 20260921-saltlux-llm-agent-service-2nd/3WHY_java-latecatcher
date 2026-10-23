@@ -1,0 +1,7 @@
+# DB 접속 정보 견본. 이 파일을 같은 폴더에 db.properties로 복사한 뒤 user, password를 자기 MySQL 계정으로 바꾼다
+# db.properties는 gitignore라서 커밋되지 않는다. 비밀번호는 이 견본에 적지 않는다
+# JDBCTemplate이 이 파일 전체를 DriverManager.getConnection(url, prop)에 넘기므로 user, password 키 이름을 바꾸지 않는다
+driver=com.mysql.cj.jdbc.Driver
+url=jdbc:mysql://localhost:3306/latedb
+user=your_user
+password=your_password
