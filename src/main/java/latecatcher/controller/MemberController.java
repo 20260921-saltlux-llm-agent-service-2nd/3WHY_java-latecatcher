@@ -1,5 +1,7 @@
 package latecatcher.controller;
 
+import latecatcher.model.Member;
+import latecatcher.repository.MemberRepository;
 
 // 사용자 입력과 repository/view 사이의 흐름을 조정한다.
 public class MemberController {
@@ -14,6 +16,7 @@ public class MemberController {
      * 저장 결과에 따라 가입 성공 또는 실패 메시지를 출력한다.
      */
     public void signUp(String name, int age, String phone) {}
+
 
 
 
@@ -76,6 +79,8 @@ public class MemberController {
      * 출력한 뒤 true를 반환한다.
      * 실패하면 "회원 탈퇴에 실패했습니다."를 출력하고 false를 반환한다.
      */
-
+    public boolean deleteMyAccount() {
+        return false;
+    }
 
 }

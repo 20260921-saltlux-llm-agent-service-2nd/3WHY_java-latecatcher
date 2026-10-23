@@ -82,26 +82,26 @@ public class Application {
                 // 내 출결 리스크 보기
                 case 1:
 
-                // 출결 입력
+                    // 출결 입력
                 case 2:
 
-                // 반 전체 현황
+                    // 반 전체 현황
                 case 3:
 
-                // 과정 설정
+                    // 과정 설정
                 case 4:
-                addCourse(scanner, controller);
-                // 수업일 캘린더
+                    addCourse(scanner, controller);
+                    // 수업일 캘린더
                 case 5:
 
-                //회원 탈퇴
+                    //회원 탈퇴
                 case 6:
 
-                // 로그아웃
+                    // 로그아웃
                 case 8:
 
 
-                // 프로그램 종료
+                    // 프로그램 종료
                 case 9:
                     System.out.println("프로그램을 종료합니다.");
                     return true;
