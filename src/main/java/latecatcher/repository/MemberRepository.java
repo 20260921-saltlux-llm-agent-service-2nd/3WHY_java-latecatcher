@@ -50,6 +50,39 @@ public class MemberRepository {
         return null;
     }
 
+    /** 회원가입 **/
+    public boolean save(Member member) {
+        String sql = prop.getProperty("insertMember");
 
+        try (Connection con = JDBCTemplate.getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
 
+            pstmt.setString(1, member.getName());
+            pstmt.setInt(2, member.getAge());
+            pstmt.setString(3, member.getPhone());
+
+            int result = pstmt.executeUpdate();
+            return result == 1;
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("회원 저장에 실패했습니다.", e);
+        }
+    }
+
+    /** 회원 탈퇴 **/
+    public boolean deleteById(int memberId) {
+       String sql = prop.getProperty("deleteMemberById");
+
+       try(Connection con = JDBCTemplate.getConnection();
+           PreparedStatement pstmt = con.prepareStatement(sql)){
+
+            pstmt.setInt(1, memberId);
+
+            int result = pstmt.executeUpdate();
+            return result == 1;
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("회원 삭제에 실패했습니다.", e);
+        }
+    }
 }
