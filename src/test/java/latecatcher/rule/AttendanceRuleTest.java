@@ -1,10 +1,13 @@
 package latecatcher.rule;
 
+import latecatcher.model.Attendance;
 import latecatcher.model.AttendanceStatus;
 import latecatcher.model.Course;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.OptionalDouble;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -19,6 +22,14 @@ class AttendanceRuleTest {
         course.setEndTime(LocalTime.of(18, 20));
         course.setPartialPerAbsence(3);
         return course;
+    }
+
+    // ③ 테스트용 출결 기록: 날짜와 퇴실 시각만 정한다 (나머지는 이 계산에 쓰지 않음)
+    private Attendance attendance(LocalDate date, LocalTime checkOut) {
+        Attendance attendance = new Attendance();
+        attendance.setAttendDate(date);
+        attendance.setCheckOut(checkOut);
+        return attendance;
     }
 
     // 테스트1 - 정각이면 지각도 조퇴도 아니다.
@@ -173,5 +184,47 @@ class AttendanceRuleTest {
     @Test
     void 기록이_없으면_수업일_전부가_미입력() {
         assertEquals(12, rule.missingDays(12, 0));
+    }
+
+    // recordsUntil — 기준일(어제) 당일까지는 남는다
+    @Test
+    void 기준일_전날과_당일_기록은_남는다() {
+        List<Attendance> records = List.of(
+                attendance(LocalDate.of(2026, 10, 20), LocalTime.of(18, 20)),
+                attendance(LocalDate.of(2026, 10, 21), LocalTime.of(18, 20)));
+
+        assertEquals(2, rule.recordsUntil(records, LocalDate.of(2026, 10, 21)).size());
+    }
+
+    // recordsUntil — 퇴실 기록 없는 오늘 줄은 계산에서 빠진다 (PLAN 13절 성공 기준)
+    @Test
+    void 퇴실_없는_오늘_줄은_빠진다() {
+        List<Attendance> records = List.of(
+                attendance(LocalDate.of(2026, 10, 20), LocalTime.of(18, 20)),
+                attendance(LocalDate.of(2026, 10, 21), LocalTime.of(18, 20)),
+                attendance(LocalDate.of(2026, 10, 22), null));   // 오늘, 아직 퇴실 전
+
+        List<Attendance> result = rule.recordsUntil(records, LocalDate.of(2026, 10, 21));
+
+        assertEquals(2, result.size());
+        assertEquals(LocalDate.of(2026, 10, 21), result.get(1).getAttendDate());
+    }
+
+    // recordsUntil — 받은 목록은 그대로 두고 새 목록을 돌려준다
+    @Test
+    void 원본_목록은_바꾸지_않는다() {
+        List<Attendance> records = List.of(
+                attendance(LocalDate.of(2026, 10, 21), LocalTime.of(18, 20)),
+                attendance(LocalDate.of(2026, 10, 22), null));
+
+        rule.recordsUntil(records, LocalDate.of(2026, 10, 21));
+
+        assertEquals(2, records.size());
+    }
+
+    // recordsUntil — 기록이 없으면 빈 목록
+    @Test
+    void 기록이_없으면_빈_목록() {
+        assertTrue(rule.recordsUntil(List.of(), LocalDate.of(2026, 10, 21)).isEmpty());
     }
 }

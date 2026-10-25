@@ -1,9 +1,13 @@
 package latecatcher.rule;
 
+import latecatcher.model.Attendance;
 import latecatcher.model.AttendanceStatus;
 import latecatcher.model.Course;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.OptionalDouble;
 
 // 출결 규칙. 상태 판정·환산, 결석·출석률·미입력 계산을 순수 Java로 한다.(PLAN3절) (L-05, L-08, L-09)
@@ -67,23 +71,22 @@ public class AttendanceRule {
         return classDays - recordDays;
     }
 
+    // 기준일(baseDate)까지의 기록만 새 목록으로 돌려준다. 받은 records는 바꾸지 않는다 (PLAN 3절 계산 기준일)
+    // - baseDate = 계산 기준일 = 어제. 기준일 당일은 포함하고, 그 뒤(오늘 이후)는 뺀다
+    // - 오늘을 빼는 이유: 오늘은 아직 퇴실 전이라 퇴실 기록이 없다. judge 규칙(퇴실 없음 = 결석)대로 세면
+    //   수업 중인 사람이 결석이 된다. 고용24도 "당일 출석결과는 익일 반영"이다
+    // - 누가 넘기나: 계산을 부르는 쪽(L-08 내 출결 리스크의 Controller)이 LocalDate.now().minusDays(1)을 넘긴다
+    // - 여기서 LocalDate.now()를 부르지 않는 이유: 테스트에서 날짜를 고정해야 언제 돌려도 같은 결과가 나온다
+    // - 오늘 줄이 들어오는 경로: L-05 입력은 오늘을 막고(3b), v0.2 고용24 가져오기도 오늘 이후 줄은 가져오지 않는다.
+    //   이 메서드는 그래도 섞여 들어온 줄을 계산 전에 거르는 마지막 안전장치다
+    public List<Attendance> recordsUntil(List<Attendance> records, LocalDate baseDate) {
+        List<Attendance> result = new ArrayList<>();
+
+        for (Attendance attendance : records) {
+            if (!attendance.getAttendDate().isAfter(baseDate)) {                                       // 3. 기준일보다 뒤가 아니면
+                result.add(attendance);
+            }
+        }
+        return result;
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
