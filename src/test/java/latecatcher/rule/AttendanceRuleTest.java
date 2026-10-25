@@ -5,6 +5,7 @@ import latecatcher.model.Course;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalTime;
+import java.util.OptionalDouble;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -111,6 +112,49 @@ class AttendanceRuleTest {
         course.setPartialPerAbsence(2);
         assertEquals(1, rule.convertedAbsence(0, 3, course));
         assertEquals(2, rule.convertedAbsence(0, 4, course));
+    }
+
+    // attendanceRate — 3단계 예시: (10 − 1 − 2) / (10 − 1) = 7 / 9
+    @Test
+    void 기록10_공결1_환산결석2는_77점8퍼센트() {
+        OptionalDouble rate = rule.attendanceRate(10, 1, 2);
+        assertEquals(77.78, rate.getAsDouble(), 0.01);
+    }
+
+    // attendanceRate — 80% 경계
+    @Test
+    void 기록10_환산결석2는_80퍼센트() {
+        assertEquals(80.0, rule.attendanceRate(10, 0, 2).getAsDouble(), 0.001);
+    }
+
+    // attendanceRate — 80% 미만
+    @Test
+    void 기록14_환산결석3은_80퍼센트_미만() {
+        assertTrue(rule.attendanceRate(14, 0, 3).getAsDouble() < 80.0);
+    }
+
+    // attendanceRate — 결석이 없으면 100%
+    @Test
+    void 환산결석이_없으면_100퍼센트() {
+        assertEquals(100.0, rule.attendanceRate(10, 0, 0).getAsDouble(), 0.001);
+    }
+
+    // attendanceRate — 공결은 분모·분자 양쪽에서 빠진다: (10 − 2 − 2) / (10 − 2) = 6 / 8
+    @Test
+    void 공결은_분모와_분자에서_빠진다() {
+        assertEquals(75.0, rule.attendanceRate(10, 2, 2).getAsDouble(), 0.001);
+    }
+
+    // attendanceRate — 기록이 0일이면 계산하지 않는다 (기록 없음)
+    @Test
+    void 기록_0일이면_기록_없음() {
+        assertTrue(rule.attendanceRate(0, 0, 0).isEmpty());
+    }
+
+    // attendanceRate — 기록이 모두 공결이면 분모가 0이라 계산하지 않는다
+    @Test
+    void 모두_공결이면_기록_없음() {
+        assertTrue(rule.attendanceRate(3, 3, 0).isEmpty());
     }
 
 }

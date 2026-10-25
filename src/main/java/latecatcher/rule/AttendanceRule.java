@@ -4,6 +4,7 @@ import latecatcher.model.AttendanceStatus;
 import latecatcher.model.Course;
 
 import java.time.LocalTime;
+import java.util.OptionalDouble;
 
 // 출결 규칙. 상태 판정·환산, 결석·출석률·미입력 계산을 순수 Java로 한다.(PLAN3절) (L-05, L-08, L-09)
 public class AttendanceRule {
@@ -52,4 +53,36 @@ public class AttendanceRule {
         return absent + (partial / course.getPartialPerAbsence());
     }
 
+    public OptionalDouble attendanceRate(int recordDays, int excused, int convertedAbsence) {
+
+        int targetDays = (recordDays - excused);
+
+        //
+        if (targetDays <= 0) {
+            return OptionalDouble.empty();
+        }
+
+        return OptionalDouble.of((targetDays - convertedAbsence) * 100.0 / targetDays);
+
+    }
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
