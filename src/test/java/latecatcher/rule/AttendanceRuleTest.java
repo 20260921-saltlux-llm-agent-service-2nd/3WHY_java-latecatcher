@@ -157,4 +157,21 @@ class AttendanceRuleTest {
         assertTrue(rule.attendanceRate(3, 3, 0).isEmpty());
     }
 
+    // missingDays — 3단계 예시: 수업일 12일 중 10일 기록 → 미입력 2일
+    @Test
+    void 수업일12_기록10은_미입력_2일() {
+        assertEquals(2, rule.missingDays(12, 10));
+    }
+
+    // missingDays — 모두 기록했으면 미입력 0일
+    @Test
+    void 모두_기록하면_미입력_0일() {
+        assertEquals(0, rule.missingDays(12, 12));
+    }
+
+    // missingDays — 하나도 기록하지 않았으면 수업일 전부가 미입력
+    @Test
+    void 기록이_없으면_수업일_전부가_미입력() {
+        assertEquals(12, rule.missingDays(12, 0));
+    }
 }

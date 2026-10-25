@@ -29,7 +29,6 @@ public class AttendanceRule {
         return checkOut != null && checkOut.isBefore(course.getEndTime());
     }
 
-
     /* PLAN 3절 출석률 공식:
      - 환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출) / 3)
      - 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
@@ -53,17 +52,19 @@ public class AttendanceRule {
         return absent + (partial / course.getPartialPerAbsence());
     }
 
+    // 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
     public OptionalDouble attendanceRate(int recordDays, int excused, int convertedAbsence) {
 
-        int targetDays = (recordDays - excused);
-
-        //
+        int targetDays = (recordDays - excused); //출석률 계산의 분모
         if (targetDays <= 0) {
             return OptionalDouble.empty();
         }
-
         return OptionalDouble.of((targetDays - convertedAbsence) * 100.0 / targetDays);
+    }
 
+    // 미입력 일수 = 기간의 수업일 수 − 기록 일수. 결석으로 세지 않고 화면에만 보여 준다 (PLAN 3절)
+    public int missingDays(int classDays, int recordDays) {
+        return classDays - recordDays;
     }
 
 }
