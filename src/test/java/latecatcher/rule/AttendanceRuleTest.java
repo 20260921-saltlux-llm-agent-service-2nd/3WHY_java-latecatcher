@@ -80,4 +80,37 @@ class AttendanceRuleTest {
         assertFalse(rule.isEarlyLeave(null, course()));
     }
 
+    // convertedAbsence — 3회가 안 차면 결석으로 치지 않는다
+    @Test
+    void 지각_2회는_환산_결석_0일() {
+        assertEquals(0, rule.convertedAbsence(0, 2, course()));
+    }
+
+    // convertedAbsence — 3회 = 결석 1일
+    @Test
+    void 지각_3회는_환산_결석_1일() {
+        assertEquals(1, rule.convertedAbsence(0, 3, course()));
+    }
+
+    // convertedAbsence — 남는 횟수는 버린다 (5 / 3 = 1)
+    @Test
+    void 지각_5회는_환산_결석_1일() {
+        assertEquals(1, rule.convertedAbsence(0, 5, course()));
+    }
+
+    // convertedAbsence — 결석은 그대로 더한다
+    @Test
+    void 결석_1일_지각_3회는_환산_결석_2일() {
+        assertEquals(2, rule.convertedAbsence(1, 3, course()));
+    }
+
+    // convertedAbsence — 기준 횟수는 상수가 아니라 Course 값을 쓴다
+    @Test
+    void 기준이_2회면_지각_3회는_환산_결석_1일_4회는_2일() {
+        Course course = course();
+        course.setPartialPerAbsence(2);
+        assertEquals(1, rule.convertedAbsence(0, 3, course));
+        assertEquals(2, rule.convertedAbsence(0, 4, course));
+    }
+
 }
