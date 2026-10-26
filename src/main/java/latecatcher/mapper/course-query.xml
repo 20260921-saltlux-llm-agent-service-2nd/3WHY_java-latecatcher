@@ -5,7 +5,7 @@
 
     <!-- 1. 과정 등록 (L-03) -->
     <entry key="insertCourse">
-        INSERT INTO tbl_course (
+        INSERT INTO course_tbl (
         course_id,
         name,
         start_date,
