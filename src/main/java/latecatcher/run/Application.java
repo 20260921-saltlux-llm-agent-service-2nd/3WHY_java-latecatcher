@@ -171,8 +171,11 @@ public class Application {
         LocalTime endTime = readTime(scanner, "수업 종료 시간 (예: 18:00): ", timeFormatter);
 
         // 4. 출결 및 수료 기준 입력
-        System.out.print("지각·조퇴·외출 합산 결석 기준 횟수 (예: 3): ");
-        int partialPerAbsence = scanner.nextInt();
+        int partialPerAbsence = readInt(scanner, "지각·조퇴·외출 합산 결석 기준 횟수 (예: 3): ");
+        while (partialPerAbsence < 1) {
+            System.out.println("1 이상의 숫자를 입력하세요.");
+            partialPerAbsence = readInt(scanner, "지각·조퇴·외출 합산 결석 기준 횟수 (예: 3): ");
+        }
 
         System.out.print("훈련장려금 지급 기준 출석률 (%) (예: 80): ");
         int allowanceThreshold = scanner.nextInt();
