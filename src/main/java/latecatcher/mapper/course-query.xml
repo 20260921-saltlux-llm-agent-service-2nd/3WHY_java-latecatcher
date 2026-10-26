@@ -2,7 +2,6 @@
 <!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
 <properties>
     <comment>CourseRepository SQL</comment>
-
     <!-- 1. 과정 등록 (L-03) -->
     <entry key="insertCourse">
         INSERT INTO course_tbl (
@@ -20,5 +19,10 @@
         )
     </entry>
 
-
+    <!-- 2. 과정 기간 조회 (L-04 수업일 생성용) -->
+    <entry key="selectCoursePeriod">
+        SELECT start_date, end_date
+        FROM course_tbl
+        WHERE course_id = ?
+    </entry>
 </properties>
