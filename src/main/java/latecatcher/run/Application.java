@@ -10,7 +10,7 @@ import java.time.format.DateTimeParseException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-// 사용자 입력과 메뉴 실행을 담당한다. 이 파일은 수정하지 않는다.
+// 사용자 입력과 메뉴 실행을 담당한다.
 public class Application {
 
     public static void main(String[] args) {
@@ -18,7 +18,20 @@ public class Application {
             MemberController controller = new MemberController();
             runStartMenu(scanner, controller);
         } catch (IllegalStateException e) {
-            System.out.println("데이터베이스 처리 중 오류가 발생했습니다.");
+            // DB 처리에 실패하면 JDBCTemplate과 저장소가 IllegalStateException으로 감싸서 여기까지 올린다.
+            //
+            // [변경 전] 고정 문구 두 줄만 출력하고 예외 객체 e는 쓰지 않았다.
+            //  - 연결 실패, 드라이버 없음, 회원 저장 실패 등 무엇이 실패해도 화면에는 같은 문구가 나왔다.
+            //  - JDBCTemplate과 저장소가 예외에 담아 보낸 메시지는 어디에도 출력되지 않고 버려졌다.
+            // [변경 후] 메시지 두 가지를 함께 출력한다.
+            //  - e.getMessage(): 무엇이 실패했는지. 예: "DB에 연결하지 못했습니다."
+            //  - e.getCause().getMessage(): 왜 실패했는지. new IllegalStateException(메시지, e)의
+            //    두 번째 인자로 넘긴 원래 예외의 메시지다. 예: MySQL의 "Access denied for user ..."
+            //  - 원인 예외 없이 메시지만 넣어 던진 경우도 있으므로 getCause()가 null인지 먼저 확인한다.
+            System.out.println("데이터베이스 처리 중 오류가 발생했습니다: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("원인: " + e.getCause().getMessage());
+            }
             System.out.println("db.properties 설정과 schema.sql 실행 상태를 확인하세요.");
         } catch (NoSuchElementException e) {
             System.out.println("입력이 종료되어 프로그램을 종료합니다.");
