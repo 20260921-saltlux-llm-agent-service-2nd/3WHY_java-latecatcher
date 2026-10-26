@@ -37,4 +37,14 @@
         FROM class_day_tbl
         WHERE class_date BETWEEN ? AND ?
     </entry>
+
+    <!-- 기간 내 실제 수업일 개수 (L-08 미입력 일수 계산용)
+    countClassDays는 공휴일·휴강일까지 세서, is_class_day = TRUE인 날만 세는 쿼리를 따로 둔다
+    미입력 일수 = 이 개수 − 기록 일수 -->
+    <entry key="countRealClassDays">
+        SELECT COUNT(*)
+        FROM class_day_tbl
+        WHERE class_date BETWEEN ? AND ?
+          AND is_class_day = TRUE
+    </entry>
 </properties>
