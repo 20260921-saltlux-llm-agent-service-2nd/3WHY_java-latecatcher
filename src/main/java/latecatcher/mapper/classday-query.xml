@@ -4,4 +4,8 @@
     <comment>ClassDayRepository SQL</comment>
 
 <!-- 수업일 -->
+    <!-- L-05 #20에서 추가 (YY): 수업일이면 is_class_day가 1, 날짜가 없으면 결과 행이 없다 -->
+    <entry key="selectIsClassDay">
+        SELECT is_class_day FROM class_day_tbl WHERE class_date = ?
+    </entry>
 </properties>
