@@ -115,7 +115,12 @@ public class MemberController {
             return;
         }
 
-        // 5. 기준 퍼센트 범위(0~100) 검증
+        // 5. 출결·수료 기준값 검증
+        // 지각·조퇴·외출 n회 = 결석 1일의 n. 0이면 환산 결석 계산(AttendanceRule)에서 0으로 나누게 된다
+        if (course.getPartialPerAbsence() < 1) {
+            memberView.displayMessage("지각·조퇴·외출 결석 기준 횟수는 1 이상이어야 합니다.");
+            return;
+        }
         if (course.getAllowanceThreshold() < 0 || course.getAllowanceThreshold() > 100 ||
                 course.getCompletionThreshold() < 0 || course.getCompletionThreshold() > 100) {
             memberView.displayMessage("기준 비율(%)은 0에서 100 사이여야 합니다.");
