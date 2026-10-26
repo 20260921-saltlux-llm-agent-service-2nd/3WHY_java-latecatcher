@@ -1,13 +1,25 @@
 package latecatcher.controller;
+
+import latecatcher.model.Course;
 import latecatcher.model.Member;
+import latecatcher.repository.CourseRepository;
 import latecatcher.repository.MemberRepository;
 import latecatcher.view.MemberView;
+
+import java.sql.Connection;
+
+import static latecatcher.common.JDBCTemplate.close;
+import static latecatcher.common.JDBCTemplate.getConnection;
+
 
 // 사용자 입력과 repository/view 사이의 흐름을 조정한다.
 public class MemberController {
 
-    private final MemberRepository memberRepository;
+    private int nextCourseId = 1; // 등록된 과정 자동 증가 ID 카운터
+    private final CourseRepository courseRepository;
     private final MemberView memberView;
+    private final MemberRepository memberRepository;
+
     private Member loginMember;
 
     // member_tbl의 ck_member_tbl_phone CHECK와 같은 정규식
@@ -16,6 +28,7 @@ public class MemberController {
     public MemberController() {
         memberRepository = new MemberRepository();
         memberView = new MemberView();
+        courseRepository = new CourseRepository();
     }
 
     /*
@@ -64,28 +77,88 @@ public class MemberController {
 
     /*
      * L-03 과정 설정
-     * 과정명, 훈련 시작·종료일, 수업 시작·종료 시각 입력
-     * */
-    public boolean addCourse(){
-        return true;
+     * - 과정명, 훈련 시작·종료일, 수업 시작·종료 시각 입력값을 검증한다.
+     * - 검증 통과 시 courseRepository를 통해 과정을 등록한다.
+     * - 성공하면 "과정이 성공적으로 등록되었습니다."를 출력한다.
+     * - 실패하면 "과정 등록에 실패했습니다." 또는 오류 메시지를 출력한다.
+     */
+    public void addCourse(Course course) {
+        // 1. 객체 null 체크
+        if (course == null) {
+            memberView.displayMessage("등록할 과정 정보가 없습니다.");
+            return;
+        }
+
+        // 2. 과정명 필수값 검증
+        if (course.getName() == null || course.getName().trim().isEmpty()) {
+            memberView.displayMessage("과정명은 필수 입력 항목입니다.");
+            return;
+        }
+
+        // 3. 훈련 시작일 / 종료일 유효성 검증
+        if (course.getStartDate() == null || course.getEndDate() == null) {
+            memberView.displayMessage("훈련 시작일과 종료일을 입력해야 합니다.");
+            return;
+        }
+        if (course.getEndDate().isBefore(course.getStartDate())) {
+            memberView.displayMessage("종료일은 시작일보다 빠를 수 없습니다.");
+            return;
+        }
+
+        // 4. 수업 시작 시각 / 종료 시각 유효성 검증
+        if (course.getStartTime() == null || course.getEndTime() == null) {
+            memberView.displayMessage("수업 시작 시각과 종료 시각을 입력해야 합니다.");
+            return;
+        }
+        if (!course.getEndTime().isAfter(course.getStartTime())) {
+            memberView.displayMessage("수업 종료 시각은 시작 시각 이후여야 합니다.");
+            return;
+        }
+
+        // 5. 출결·수료 기준값 검증
+        // 지각·조퇴·외출 n회 = 결석 1일의 n. 0이면 환산 결석 계산(AttendanceRule)에서 0으로 나누게 된다
+        if (course.getPartialPerAbsence() < 1) {
+            memberView.displayMessage("지각·조퇴·외출 결석 기준 횟수는 1 이상이어야 합니다.");
+            return;
+        }
+        if (course.getAllowanceThreshold() < 0 || course.getAllowanceThreshold() > 100 ||
+                course.getCompletionThreshold() < 0 || course.getCompletionThreshold() > 100) {
+            memberView.displayMessage("기준 비율(%)은 0에서 100 사이여야 합니다.");
+            return;
+        }
+
+        // 6. DB 커넥션 획득 및 repository 메서드 호출
+        course.setCourseId(nextCourseId); // Course 객체에 현재 카운터 번호 세팅
+
+        // 2. DB 저장
+        Connection con = getConnection();
+        int result = courseRepository.insertCourse(con, course);
+        close(con);
+
+        // 3. 저장이 성공했을 때만 ID 카운터 증가
+        if (result > 0) {
+            nextCourseId++;
+            memberView.displayMessage("과정이 성공적으로 등록되었습니다.");
+        } else {
+            memberView.displayMessage("과정 등록에 실패했습니다.");
+        }
     }
 
 
     /*
-     * L-04 출결 입력
-     * 과정명, 훈련 시작·종료일, 수업 시작·종료 시각 입력
+     * L-04 수업일 캘린더
      * */
 
 
     /*
      * L-05 출결 입력
-     * 과정명, 훈련 시작·종료일, 수업 시작·종료 시각 입력
+     * 날짜, 구분(출석/결석), 출석이면 입실·퇴실 시각
      * */
 
 
     /*
      * L-08 내 출결 리스크
-     * 과정명, 훈련 시작·종료일, 수업 시작·종료 시각 입력
+     * 출석률 계산, 80% 미달 위험 시 경고
      * */
 
 
