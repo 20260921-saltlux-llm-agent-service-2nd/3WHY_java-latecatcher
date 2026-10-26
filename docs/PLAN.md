@@ -45,10 +45,13 @@
 | 수업 시작 / 종료 시각 | **09:20 / 18:20** (slx-ai-campus, 확인됨) | `start_time`, `end_time` |
 | 지각 | 시작 시각 이후 입실 | — |
 | 조퇴 | 종료 시각 이전 퇴실 | — |
+| 최소 수업 시간 | 들은 시간 = 퇴실 − (입실과 시작 중 **늦은 쪽**). **4시간 미만이면 결석** (지각이어도). 정확히 4시간이면 채운 것으로 본다 (10/26 결정) | `min_attend_minutes` = 240 |
+| 지각이면서 조퇴 | 최소 수업 시간을 채우면 **지각·조퇴(`LATE_EARLY_LEAVE`)**로 저장하고 환산 횟수에 **2회**로 포함한다 (10/26 결정. 10/23의 "지각으로 저장, memo에 조퇴" 안을 바꿈) | 상태 `LATE_EARLY_LEAVE` |
 | 퇴실 기록 없음 | **결석** (고용24 판정과 같음) | — |
 | 계산 기준일 | **어제까지.** 오늘은 계산에서 뺀다 | — |
-| 기록이 없는 수업일 | **미입력.** 결석으로 세지 않고 계산에서 뺀다. 미입력 일수는 화면에 따로 보여 준다 | — |
+| 기록이 없는 수업일 | **미입력.** 결석 개수에 포함하지 않고 계산에서 뺀다. 미입력 일수는 화면에 따로 보여 준다 | — |
 | 지각·조퇴·외출 환산 | **3회 = 결석 1일** (`floor(count / 3)`) | `partial_per_absence` = 3 |
+| 외출 | 입실·퇴실 시각에 남지 않고 매니저·강사에게 사후에 서류로 처리한다. **v0.1에는 입력 경로가 없어 계산에 들어가지 않는다.** 고용24 가져오기(v0.2)로만 들어오고, 그때는 지각·조퇴처럼 환산한다 | 상태 `OUTING` |
 | 단위기간 | 훈련 시작일 기준 1개월 | `unit_period_days` = 30 또는 월 단위 |
 | 장려금 기준 출석률 | 단위기간 **80% 이상** | `allowance_threshold` = 80 |
 | 수료 기준 출석률 | 전체 **80% 이상** | `completion_threshold` = 80 |
@@ -57,7 +60,7 @@
 출석률 공식:
 
 ```text
-환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출) / 3)
+환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출) / 3)     (지각·조퇴인 날은 지각 1 + 조퇴 1로 포함)
 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
 기록 일수 = 훈련 시작일 ~ 어제 사이의 수업일 가운데 출결 기록이 있는 날   (오늘 포함하지 않음)
 미입력 일수 = 같은 기간의 수업일 − 기록 일수   (계산에 넣지 않고 화면에만 보여 준다)
@@ -67,7 +70,41 @@
 
 **오늘을 빼는 이유:** 퇴실 기록이 없으면 결석이다. 그런데 오늘은 아직 퇴실하지 않았어도 퇴실 기록이 없으니, 오늘을 넣으면 수업 중인 사람도 결석으로 계산된다. 고용24도 "당일 출석결과는 익일 반영"이다. 그래서 오늘 줄은 DB에 있어도 출석률·환산 결석·경고 계산에 넣지 않는다. 기준일은 `LocalDate.now().minusDays(1)`로 정하고, `AttendanceRule`에는 인자로 넘겨 테스트에서 날짜를 고정할 수 있게 한다.
 
-이 계산은 **순수 Java(`AttendanceRule`)** 에 둔다. SQL은 개수를 세고, Java가 규칙을 적용한다. 그래야 JUnit으로 규칙만 따로 테스트할 수 있다.
+이 계산은 **순수 Java(`AttendanceRule`)** 에 둔다. SQL은 상태별 개수만 구하고, Java가 규칙을 적용한다. 그래야 JUnit으로 규칙만 따로 테스트할 수 있다.
+
+**상태 판정 순서 (`AttendanceRule.judge`)** — 위에서부터 먼저 걸리는 것으로 정한다.
+
+1. 입실이나 퇴실 시각이 없다 → `ABSENT`
+2. 들은 시간(퇴실 − 입실과 시작 중 늦은 쪽)이 최소 수업 시간(`min_attend_minutes`, 240분) **미만**이다 → `ABSENT` (지각이어도)
+3. 입실이 시작 시각 **이후**이고 퇴실이 종료 시각 **이전**이다 → `LATE_EARLY_LEAVE`
+4. 입실이 시작 시각 **이후**다 → `LATE`
+5. 퇴실이 종료 시각 **이전**이다 → `EARLY_LEAVE`
+6. 그 밖 → `PRESENT`
+
+- 최소 수업 시간 검사를 지각·조퇴보다 **먼저** 한다. 4시간을 채우지 못하면 지각·조퇴가 아니라 결석이다.
+- 들은 시간은 입실과 시작 시각 중 **늦은 쪽**부터 잰다. 일찍 온 시간(예: 08:50~09:20)은 수업 시간에 포함하지 않는다. 지각하면 입실 시각부터 잰다 (10:20 입실이면 14:20부터 조퇴 인정).
+- 정각은 지각·조퇴가 아니다. 시작 시각에 입실(09:20)하면 출석, 종료 시각에 퇴실(18:20)하면 조퇴가 아니다. 최소 수업 시간은 정확히 4시간이면 채운 것으로 본다.
+- `OUTING`(외출)은 시각으로 판정하지 않는다. 사후 서류 처리라 v0.1에는 입력 경로가 없고 고용24 가져오기(v0.2)로만 들어온다 (위 표). 그래도 `AttendanceStatus.OUTING`의 환산 횟수는 1로 둔다. v0.2에서 가져온 외출을 환산에 넣기 위해서다.
+- `EXCUSED`(공결)는 시각으로 판정하지 않는다. 사용자가 직접 고르는 상태다.
+- `AttendanceStatus`는 상태마다 **환산 횟수**(`partialCount`)를 가진다. `LATE`·`EARLY_LEAVE`·`OUTING`은 1, `LATE_EARLY_LEAVE`는 2, 나머지는 0이다. 지각·조퇴·외출 합계는 이 값을 더해서 구한다.
+- `isEarlyLeave(LocalTime checkOut, Course course)`는 "퇴실 시각이 있고 종료 시각 이전이면 `true`"만 판단한다. 최소 수업 시간 검사는 `judge`가 따로 한다. memo에 "조퇴"를 남기던 10/23 방식은 쓰지 않는다.
+
+판정 테스트 (과정 09:20~18:20, 최소 수업 시간 240분, `AttendanceRuleTest`):
+
+| 입력 | 기대 |
+| --- | --- |
+| 입실 09:20, 퇴실 18:20 | `judge` → `PRESENT` (정각은 지각·조퇴 아님) |
+| 입실 09:21, 퇴실 18:20 | `judge` → `LATE` |
+| 입실 09:30, 퇴실 17:00 | `judge` → `LATE_EARLY_LEAVE` (지각이면서 조퇴, 4시간 이상) |
+| 입실 09:20, 퇴실 17:00 | `judge` → `EARLY_LEAVE` (지각 아님) |
+| 입실 09:20, 퇴실 13:20 | `judge` → `EARLY_LEAVE` (정확히 4시간) |
+| 입실 09:20, 퇴실 13:19 | `judge` → `ABSENT` (4시간 미만) |
+| 입실 10:20, 퇴실 13:20 | `judge` → `ABSENT` (지각 후 3시간) |
+| 입실 10:20, 퇴실 14:20 | `judge` → `LATE_EARLY_LEAVE` (지각 후 4시간) |
+| 입실 12:20, 퇴실 18:20 | `judge` → `LATE` (지각 후 6시간, 종료까지 있음) |
+| 입실 08:50, 퇴실 13:00 | `judge` → `ABSENT` (일찍 온 시간은 포함하지 않음, 3시간 40분) |
+| 퇴실 18:20 | `isEarlyLeave` → `false` (정각은 조퇴 아님) |
+| 퇴실 없음 | `judge` → `ABSENT` |
 
 ---
 
@@ -198,9 +235,9 @@ flowchart LR
 - 사전 조건: 로그인했다. 과정 설정(L-03)과 수업일 캘린더(L-04)가 있다.
 - 기본 흐름
   1. 훈련생이 출결 메뉴에서 `2`를 고른다.
-  2. 날짜와 구분(`1` 출석 / `2` 결석)을 입력한다.
+  2. 날짜와 구분(`1` 출석 / `2` 결석)을 입력한다. 외출은 고르지 않는다 (사후 서류 처리, 3절).
   3. 시스템이 그날이 수업일이고 어제 이전인지 확인한다.
-  4. 출석이면 입실·퇴실 시각을 **둘 다** 입력받고, 시스템이 과정의 시작·종료 시각으로 상태(출석/지각/조퇴)를 판정한다 (`AttendanceRule`). 결석이면 시각 없이 `결석`으로 정한다.
+  4. 출석이면 입실·퇴실 시각을 **둘 다** 입력받고, 시스템이 과정의 시작·종료 시각과 최소 수업 시간으로 상태(출석/지각/조퇴/지각·조퇴/결석)를 판정한다 (`AttendanceRule`, 3절 판정 순서). 들은 시간이 4시간 미만이면 결석이다. 결석이면 시각 없이 `결석`으로 정한다.
   5. 시스템이 저장하고 "10/06 지각으로 저장했습니다"처럼 결과를 보여 준다.
 - 예외 흐름
   - 3a. 수업일이 아니다(주말·공휴일·휴강) → "수업일이 아닙니다" 후 2로.
@@ -231,7 +268,7 @@ flowchart LR
 - 사전 조건: 로그인했다.
 - 기본 흐름
   1. 훈련생이 출결 메뉴에서 `1`을 고른다.
-  2. 시스템이 이번 달 수업일 중 어제까지의 출결 기록을 상태별로 세고, **기록이 없는 수업일(미입력) 수**도 센다 (SQL).
+  2. 시스템이 이번 달 수업일 중 어제까지의 출결 기록으로 상태별 개수를 구하고, **기록이 없는 수업일(미입력) 수**도 구한다 (SQL).
   3. 시스템이 **기록이 있는 날만으로** 환산 결석과 출석률을 계산한다 (`AttendanceRule`, 3절 공식).
   4. 시스템이 "지각 몇 번 / 결석 며칠 더면 80% 아래"를 계산해 경고와 함께 보여 준다 (2절 사용 장면).
   5. 미입력이 있으면 "미입력 N일 — 결석이었다면 결석으로 입력하세요"를 덧붙인다.
@@ -274,7 +311,7 @@ flowchart LR
 | 배운 것 | 출처 | 이 프로젝트에서 |
 | --- | --- | --- |
 | 5층 구조 model / repository / view / controller / run | `chap99-Java-Application`, 스켈레톤 | 그대로 유지. 새 기능도 같은 층 구조로 |
-| enum | `chap14_enum` | `AttendanceStatus` — 한글 라벨, "환산 대상인가" 플래그를 enum 필드로 |
+| enum | `chap14_enum` | `AttendanceStatus` — 한글 라벨, 환산 횟수(0·1·2)를 enum 필드로 |
 | 인터페이스·다형성 | `chap09-polymorphism` | `Notifier` 인터페이스 — v0.1 `ConsoleNotifier`(경고를 화면에 출력), v0.2 `DiscordNotifier`. 보내는 곳이 달라도 경고 계산 코드는 하나 |
 | 상속·예외 | `chap07-inheritance` | `ImportException extends RuntimeException` — 몇 번째 줄이 왜 실패했는지 담는다 |
 | 컬렉션·제네릭 | `chap11-collections`, `chap10-Generics` | `Map<LocalDate, Attendance>` 로 날짜별 기록, `List<MonthlySummary>` |
@@ -323,7 +360,7 @@ flowchart LR
 | --- | --- | --- |
 | `model.Member` (memberId, name, age, phone) | `model.Member` (memberId, name, age, phone) | 훈련생. **스켈레톤 필드 그대로** (age 유지). phone은 로그인 키(필수). `role` 열은 스키마에 있지만(기본값 `TRAINEE`) v0.1 코드는 쓰지 않는다. `role` 필드와 `Role` enum은 v0.2(L-16) |
 | `model.Membership` (ottType, planName, enrollDate, expiryDate, active) | `model.Attendance` (attendanceId, memberId, attendDate, checkIn, checkOut, status, memo, source) | 구독 1건 → 출결 1건. `LocalDateTime` 2개 → `LocalDate` + `LocalTime` 2개 |
-| — | `model.AttendanceStatus` (enum) | `PRESENT, LATE, EARLY_LEAVE, OUTING, ABSENT, EXCUSED` |
+| — | `model.AttendanceStatus` (enum) | `PRESENT, LATE, EARLY_LEAVE, LATE_EARLY_LEAVE, OUTING, ABSENT, EXCUSED` |
 | — | `model.Course` | 과정 설정 1행 |
 | — | `model.MonthlySummary` | 월별 집계 결과 (뷰 1행) |
 | `repository.MemberRepository` (save / findByPhone / deleteById) | save / findByPhone / deleteById | 그대로 (휴대폰 번호로 조회) |
@@ -361,6 +398,7 @@ CREATE TABLE course_tbl (                           -- 과정 설정, 1행만 �
     start_time            TIME NOT NULL DEFAULT '09:20:00',  -- slx-ai-campus 수업 시작
     end_time              TIME NOT NULL DEFAULT '18:20:00',  -- slx-ai-campus 수업 종료
     partial_per_absence   INT  NOT NULL DEFAULT 3,   -- 지각·조퇴·외출 n회 = 결석 1일
+    min_attend_minutes    INT  NOT NULL DEFAULT 240, -- 최소 수업 시간(분). 퇴실 − (입실과 시작 중 늦은 쪽)이 이보다 짧으면 결석
     allowance_threshold   INT  NOT NULL DEFAULT 80,  -- 장려금 기준 %
     completion_threshold  INT  NOT NULL DEFAULT 80,  -- 수료 기준 %
     PRIMARY KEY (course_id),
@@ -391,7 +429,7 @@ CREATE TABLE attendance_tbl (                       -- 출결 1건 = 훈련생 1
     attend_date   DATE NOT NULL,
     check_in      TIME,
     check_out     TIME,
-    status        ENUM('PRESENT','LATE','EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,
+    status        ENUM('PRESENT','LATE','EARLY_LEAVE','LATE_EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,  -- LATE_EARLY_LEAVE = 같은 날 지각과 조퇴를 모두 인정 (환산 2회)
     memo          VARCHAR(255),
     source        ENUM('MANUAL','WORK24') NOT NULL DEFAULT 'MANUAL',  -- v0.2 가져오기(L-06)용. v0.1은 항상 MANUAL
     PRIMARY KEY (attendance_id),
@@ -417,14 +455,17 @@ CREATE TABLE import_log_tbl (                       -- 출결 가져오기 기�
         REFERENCES member_tbl (member_id) ON DELETE CASCADE   -- 탈퇴(L-11)하면 가져오기 기록도 지운다
 );
 
--- 월별 집계 뷰: SQL은 세기만 하고, 출석률 계산은 Java(AttendanceRule)가 한다
+-- 월별 집계 뷰: SQL은 상태별 개수만 구하고, 출석률 계산은 Java(AttendanceRule)가 한다
+-- LATE_EARLY_LEAVE(지각·조퇴)인 날은 late_cnt와 early_cnt에 모두 포함한다. 그래서 cnt 컬럼의 합은 기록 일수가 아니다
+-- 기록 일수는 record_cnt를 쓴다
 CREATE OR REPLACE VIEW v_monthly_attendance AS
 SELECT m.member_id,
        m.name,
        DATE_FORMAT(a.attend_date, '%Y-%m')                       AS ym,
+       COUNT(*)                                                   AS record_cnt,
        SUM(a.status = 'PRESENT')                                  AS present_cnt,
-       SUM(a.status = 'LATE')                                     AS late_cnt,
-       SUM(a.status = 'EARLY_LEAVE')                              AS early_cnt,
+       SUM(a.status IN ('LATE', 'LATE_EARLY_LEAVE'))              AS late_cnt,
+       SUM(a.status IN ('EARLY_LEAVE', 'LATE_EARLY_LEAVE'))       AS early_cnt,
        SUM(a.status = 'OUTING')                                   AS outing_cnt,
        SUM(a.status = 'ABSENT')                                   AS absent_cnt,
        SUM(a.status = 'EXCUSED')                                  AS excused_cnt
@@ -797,7 +838,7 @@ v0.1 MVP 기능만 나눈다 (L-06 출결 가져오기와 L-16 권한은 v0.2). 
 - [ ] 세 명이 각자 그린 ERD 초안을 종합한 **합의 ERD**(`docs/erd.md`)가 세 명 동의로 머지되고, `schema.sql`이 그 ERD와 같다
 - [ ] 반 전체 현황에서 80% 미달자가 HAVING으로 걸러져 나온다
 - [ ] 그 달 기록이 없는 훈련생은 순위·미달 명단에서 빠지고 "기록 없음"에 따로 나온다. 결석을 입력한 훈련생은 미달 명단에 그대로 나온다
-- [ ] `AttendanceRuleTest` 가 통과한다 (경계값: 지각 2회/3회, 79.9%/80.0%, 공결 처리, **퇴실 기록 없는 오늘 줄은 계산에서 빠짐**, **기록 없는 날은 분모에서 빠지고 미입력으로 세어짐**, 기록 0일이면 계산하지 않음)
+- [ ] `AttendanceRuleTest` 가 통과한다 (경계값: 정각 입실·퇴실, **최소 수업 시간 4시간(미만은 결석, 지각 후 입실 기준)**, **지각이면서 조퇴는 지각·조퇴(환산 2회)**, 지각 2회/3회, 79.9%/80.0%, 공결 처리, **퇴실 기록 없는 오늘 줄은 계산에서 빠짐**, **기록 없는 날은 분모에서 빠지고 미입력 일수에 포함됨**, 기록 0일이면 계산하지 않음)
 - [ ] 팀원 각자 PR 2개 이상, 모든 PR approve 2개, 커밋 메시지 규칙 준수, 태그 `v0.1`
 - [ ] README만 보고 다른 반 친구가 clone → `schema.sql` → `db.properties` → 실행 → 자기 출결을 입력해 리스크를 확인하기까지 할 수 있다
 
