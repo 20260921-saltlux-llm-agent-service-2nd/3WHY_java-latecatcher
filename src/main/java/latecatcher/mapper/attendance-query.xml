@@ -3,5 +3,10 @@
 <properties>
     <comment>AttendanceRepository SQL</comment>
 
-<!-- 출석 -->
+    <!-- 출석 -->
+    <entry key="insertAttendance">
+        INSERT INTO attendance_tbl (member_id, attend_date, check_in, check_out, status, memo)
+        VALUES (?, ?, ?, ?, ?, ?)
+    </entry>
+
 </properties>
