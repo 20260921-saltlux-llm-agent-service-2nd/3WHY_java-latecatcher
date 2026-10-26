@@ -15,7 +15,6 @@ public class AttendanceRule {
 
     // PLAN 3절 판정 순서: 결석 -> 지각 -> 조퇴 -> 출석
     public AttendanceStatus judge(LocalTime checkIn, LocalTime checkOut, Course course) {
-
         if (checkIn == null || checkOut == null) { // 결석
             return AttendanceStatus.ABSENT;
         } else if (checkIn.isAfter(course.getStartTime())) { // 지각 먼저, 지각 다음에 조퇴를 하게 되면 지각으로 판정
@@ -29,15 +28,14 @@ public class AttendanceRule {
 
     // 퇴실 시각이 있고 종료 시각 이전이면 true. 지각이면서 조퇴인 날 memo를 채울 때도 쓴다 (L-05)
     public boolean isEarlyLeave(LocalTime checkOut, Course course) {
-
         return checkOut != null && checkOut.isBefore(course.getEndTime());
     }
 
     /* PLAN 3절 출석률 공식:
-     - 환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출) / 3)
-     - 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
-     - 기록 일수 = 훈련 시작일 ~ 어제 사이의 수업일 가운데 출결 기록이 있는 날   (오늘 포함하지 않음)
-     - 미입력 일수 = 같은 기간의 수업일 − 기록 일수   (계산에 넣지 않고 화면에만 보여 준다)
+     * 환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출) / 3) * 3일은 partialPerAbsence에 기록(db)
+     * 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
+     * 기록 일수 = 훈련 시작일 ~ 어제 사이의 수업일 가운데 출결 기록이 있는 날   (오늘 포함하지 않음)
+     * 미입력 일수 = 같은 기간의 수업일 − 기록 일수   (계산에 넣지 않고 화면에만 보여 준다)
 
      * (예시)
      * 훈련생 한 명이 수업일 12일 중 10일을 기록했고, 결석 1·지각 4·공결 1이 있는 경우
@@ -56,7 +54,7 @@ public class AttendanceRule {
         return absent + (partial / course.getPartialPerAbsence());
     }
 
-    // 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
+    // 출석률 = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100. 분모가 0 이하면 empty(기록 없음)
     public OptionalDouble attendanceRate(int recordDays, int excused, int convertedAbsence) {
 
         int targetDays = (recordDays - excused); //출석률 계산의 분모
@@ -83,7 +81,7 @@ public class AttendanceRule {
         List<Attendance> result = new ArrayList<>();
 
         for (Attendance attendance : records) {
-            if (!attendance.getAttendDate().isAfter(baseDate)) {                                       // 3. 기준일보다 뒤가 아니면
+            if (!attendance.getAttendDate().isAfter(baseDate)) {
                 result.add(attendance);
             }
         }
