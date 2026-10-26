@@ -1,5 +1,6 @@
 package latecatcher.run;
 
+import latecatcher.controller.ClassDayController;
 import latecatcher.controller.MemberController;
 import latecatcher.model.Course;
 
@@ -110,7 +111,14 @@ public class Application {
                 // 5. 수업일 캘린더
                 case 5:
                     // TODO: 수업일 캘린더 조회 로직 구현
+                    ClassDayController classDayController = new ClassDayController();
+
                     System.out.println("\n[수업일 캘린더]");
+                    System.out.print("과정 번호 입력: ");
+                    int courseId = Integer.parseInt(scanner.nextLine());
+
+                    classDayController.generateClassDays(courseId);  // 수업일 없으면 생성
+                    classDayController.showCalendar(courseId);       // 캘린더 출력
                     break;
 
                 // 6. 회원 탈퇴

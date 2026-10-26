@@ -72,11 +72,23 @@ public class ClassDayController {
         int result = classDayRepository.insertClassDays(days);
         view.printMessage(result + "일의 수업일이 생성되었습니다.");
     }
-
     /*
-     * 수업일 캘린더 조회 (L-04)
-     * - 시작일~종료일 사이 수업일을 가져와서 view로 출력
+     * 과정 번호로 수업일 캘린더 조회
+     * - 과정 기간을 조회한 뒤 기존 showCalendar(start, end)를 호출
      */
+    public void showCalendar(int courseId) {
+        Connection con = JDBCTemplate.getConnection();
+        Course course = courseRepository.selectCoursePeriod(con, courseId);
+        JDBCTemplate.close(con);
+
+        if (course == null) {
+            view.printMessage("존재하지 않는 과정입니다.");
+            return;
+        }
+
+        showCalendar(course.getStartDate(), course.getEndDate());
+    }
+
     public void showCalendar(LocalDate start, LocalDate end) {
         List<ClassDay> days = classDayRepository.selectClassDays(start, end);
         view.printCalendar(days);
