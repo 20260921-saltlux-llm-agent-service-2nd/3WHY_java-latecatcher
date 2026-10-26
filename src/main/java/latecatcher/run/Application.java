@@ -166,11 +166,9 @@ public class Application {
         LocalDate endDate = readDate(scanner, "강의 종료일 (예: 2026-08-31): ", dateFormatter);
 
         // 3. 수업 시작 / 종료 시간 입력 (형식 검증 및 반복)
-        LocalTime startLocalTime = readTime(scanner, "수업 시작 시간 (예: 09:00): ", timeFormatter);
-        LocalDateTime startTime = startDate.atTime(startLocalTime);
+        LocalTime startTime = readTime(scanner, "수업 시작 시간 (예: 09:00): ", timeFormatter);
 
-        LocalTime endLocalTime = readTime(scanner, "수업 종료 시간 (예: 18:00): ", timeFormatter);
-        LocalDateTime endTime = startDate.atTime(endLocalTime);
+        LocalTime endTime = readTime(scanner, "수업 종료 시간 (예: 18:00): ", timeFormatter);
 
         // 4. 출결 및 수료 기준 입력
         System.out.print("지각·조퇴·외출 합산 결석 기준 횟수 (예: 3): ");
