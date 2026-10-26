@@ -1,5 +1,6 @@
 package latecatcher.run;
 
+import latecatcher.controller.AttendanceController;
 import latecatcher.controller.ClassDayController;
 import latecatcher.controller.MemberController;
 import latecatcher.model.Course;
@@ -87,8 +88,21 @@ public class Application {
             switch (choice) {
                 // 1. 내 출결 리스크 보기
                 case 1:
-                    // TODO: 내 출결 리스크 조회 로직 구현
+                    // 로그인 정보가 없으면 회원 번호를 꺼낼 수 없다 (로그인 연결 전에는 NullPointerException이 났다)
+                    if (controller.getLoginMember() == null) {
+                        System.out.println("로그인 후 이용해 주세요.");
+                        break;
+                    }
+
+                    AttendanceController attendanceController = new AttendanceController();
+
                     System.out.println("\n[내 출결 리스크 조회]");
+                    // 과정 번호 입력 (L-04 캘린더와 같은 방식). readInt는 숫자가 아니면 다시 묻는다
+                    // 변수 이름이 riskCourseId인 이유: 메뉴 5번의 courseId와 같은 switch 안이라 이름이 겹치면 안 된다
+                    int riskCourseId = readInt(scanner, "과정 번호 입력: ");
+
+                    // 로그인한 회원 번호와 과정 번호로 이번 달 출석률·경고를 보여 준다
+                    attendanceController.showMyRisk(controller.getLoginMember().getMemberId(), riskCourseId);
                     break;
 
                 // 2. 출결 입력

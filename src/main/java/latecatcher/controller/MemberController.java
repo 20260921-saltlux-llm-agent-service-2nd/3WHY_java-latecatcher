@@ -175,6 +175,12 @@ public class MemberController {
      * 출석률 계산, 80% 미달 위험 시 경고
      * */
 
+    // 로그인한 회원을 돌려준다. 로그인 전이면 null
+    // L-08: Application이 회원 번호를 꺼내 AttendanceController.showMyRisk에 넘길 때 사용
+    public Member getLoginMember() {
+        return loginMember;
+    }
+
 
     /*
      * L-09 반 전체 현황
