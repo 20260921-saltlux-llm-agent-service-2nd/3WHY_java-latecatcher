@@ -31,6 +31,10 @@ public class AttendanceController {
 
     // 로그인한 회원의 출결 1건을 입력받아 저장한다. 3a·3b·4a·5a는 안내 후 날짜 입력으로 돌아간다 (PLAN 4절 L-05)
     public void inputAttendance(Member member) {
+        if (member == null) {
+            view.displayMessage("로그인한 뒤 출결을 입력해 주세요.");
+            return;
+        }
         Course course = courseRepository.findCourse();
         if (course == null) {
             view.displayMessage("과정 설정이 없습니다. 과정 설정을 먼저 해 주세요.");
