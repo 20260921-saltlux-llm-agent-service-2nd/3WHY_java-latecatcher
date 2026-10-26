@@ -20,5 +20,23 @@
         )
     </entry>
 
+    <!-- 2. 과정 조회 (L-05 출결 판정, L-08). 가장 오래된 과정(가장 작은 course_id) 1행
+            여러 과정은 v0.1 범위 밖(확장 기능). 과정이 여러 개 등록돼 있어도 1번 과정을 쓴다 -->
+    <entry key="selectCourse">
+        SELECT
+        course_id,
+        name,
+        start_date,
+        end_date,
+        start_time,
+        end_time,
+        partial_per_absence,
+        min_attend_minutes,
+        allowance_threshold,
+        completion_threshold
+        FROM course_tbl
+        ORDER BY course_id
+        LIMIT 1
+    </entry>
 
 </properties>
