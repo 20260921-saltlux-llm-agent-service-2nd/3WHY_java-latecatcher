@@ -34,7 +34,7 @@ public class CourseRepository {
         try {
             pstmt = con.prepareStatement(query);
 
-            pstmt.setInt(1, course.getCousreId());
+            pstmt.setInt(1, course.getCourseId());
             pstmt.setString(2, course.getName());
             pstmt.setDate(3, Date.valueOf(course.getStartDate()));
             pstmt.setDate(4, Date.valueOf(course.getEndDate()));
