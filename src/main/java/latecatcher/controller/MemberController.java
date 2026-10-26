@@ -15,7 +15,6 @@ import static latecatcher.common.JDBCTemplate.getConnection;
 // 사용자 입력과 repository/view 사이의 흐름을 조정한다.
 public class MemberController {
 
-    private int nextCourseId = 1; // 등록된 과정 자동 증가 ID 카운터
     private final CourseRepository courseRepository;
     private final MemberView memberView;
     private final MemberRepository memberRepository;
@@ -147,17 +146,12 @@ public class MemberController {
             return;
         }
 
-        // 6. DB 커넥션 획득 및 repository 메서드 호출
-        course.setCourseId(nextCourseId); // Course 객체에 현재 카운터 번호 세팅
-
-        // 2. DB 저장
+        // 6. DB 저장 (course_id는 0을 보내면 AUTO_INCREMENT로 DB가 번호를 정한다)
         Connection con = getConnection();
         int result = courseRepository.insertCourse(con, course);
         close(con);
 
-        // 3. 저장이 성공했을 때만 ID 카운터 증가
         if (result > 0) {
-            nextCourseId++;
             memberView.displayMessage("과정이 성공적으로 등록되었습니다.");
         } else {
             memberView.displayMessage("과정 등록에 실패했습니다.");

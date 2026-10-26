@@ -201,7 +201,6 @@ public class Application {
         );
 
         controller.addCourse(course);
-        System.out.println("과정이 성공적으로 등록되었습니다.");
     }
 
     private static int readInt(Scanner scanner, String message) {
