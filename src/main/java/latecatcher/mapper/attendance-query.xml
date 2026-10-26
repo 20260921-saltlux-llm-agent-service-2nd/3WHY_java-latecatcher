@@ -3,7 +3,7 @@
 <properties>
     <comment>AttendanceRepository SQL</comment>
 
-    <!-- 기간 내 상태별 출결 개수 (L-08)
+    <!-- 이번 달 출결 종류별 개수 (L-08)
      휴일·휴강일(is_class_day = FALSE) 기록은 세지 않는다 -->
     <entry key="countStatusByPeriod">
         SELECT a.status, COUNT(*) AS cnt
