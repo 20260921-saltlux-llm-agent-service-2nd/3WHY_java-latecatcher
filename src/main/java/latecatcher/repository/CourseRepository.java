@@ -57,6 +57,42 @@ public class CourseRepository {
     }
 
     /*
+     * 2. 과정 기간 조회 (L-04 수업일 생성용)
+     * - 과정 번호로 시작일·종료일을 조회
+     * - 해당 과정이 없으면 null 반환
+     */
+    public Course selectCoursePeriod(Connection con, int courseId) {
+        PreparedStatement pstmt = null;
+        ResultSet rset = null;
+        Course course = null;
+
+        // XML에서 쿼리 꺼내기
+        String query = prop.getProperty("selectCoursePeriod");
+
+        try {
+            pstmt = con.prepareStatement(query);
+            pstmt.setInt(1, courseId);
+
+            rset = pstmt.executeQuery();
+
+            if (rset.next()) {
+                course = new Course();
+                course.setCourseId(courseId);
+                course.setStartDate(rset.getDate("start_date").toLocalDate());
+                course.setEndDate(rset.getDate("end_date").toLocalDate());
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            close(rset);
+            close(pstmt);
+        }
+
+        return course;
+    }
+
+    /*
      * 2. 과정 조회 (L-05 출결 판정, L-08) — YY 추가
      * 가장 오래된 과정(가장 작은 course_id) 1행을 돌려준다. 과정이 없으면 null
      * 여러 과정 등록·조회는 v0.1 범위 밖(확장 기능)이라, 과정이 여러 개여도 1번 과정을 쓴다

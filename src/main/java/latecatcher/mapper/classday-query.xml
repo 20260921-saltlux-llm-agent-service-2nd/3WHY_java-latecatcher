@@ -3,9 +3,38 @@
 <properties>
     <comment>ClassDayRepository SQL</comment>
 
-<!-- 수업일 -->
-    <!-- L-05 #20에서 추가 (YY): 수업일이면 is_class_day가 1, 날짜가 없으면 결과 행이 없다 -->
+    <!-- 수업일 여부 조회 -->
     <entry key="selectIsClassDay">
-        SELECT is_class_day FROM class_day_tbl WHERE class_date = ?
+        SELECT is_class_day
+        FROM class_day_tbl
+        WHERE class_date =?
+    </entry>
+
+    <!-- 수업일 저장
+     과정 기간 날짜를 계산한 다음 테이블에 저장 -->
+    <entry key="insertClassDays">
+        INSERT INTO class_day_tbl (class_date, is_class_day, note)
+        VALUES (
+            ?,
+            ?,
+            ?
+        )
+    </entry>
+
+    <!-- 기간 내 수업일 조회 (캘린더용)
+     캘린더에 날짜·수업 여부·메모를 보여줌-->
+    <entry key="selectClassDays">
+        SELECT class_date, is_class_day, note
+        FROM class_day_tbl
+        WHERE class_date BETWEEN ? AND ?
+        ORDER BY class_date
+    </entry>
+
+    <!-- 기간 내 이미 생성된 수업일 개수
+    수업일 생성을 두 번 실행하면 같은 날짜가 중복 저장되니까, 저장 전에 확인-->
+    <entry key="countClassDays">
+        SELECT COUNT(*)
+        FROM class_day_tbl
+        WHERE class_date BETWEEN ? AND ?
     </entry>
 </properties>
