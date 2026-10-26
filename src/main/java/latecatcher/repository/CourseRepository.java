@@ -38,8 +38,8 @@ public class CourseRepository {
             pstmt.setString(2, course.getName());
             pstmt.setDate(3, Date.valueOf(course.getStartDate()));
             pstmt.setDate(4, Date.valueOf(course.getEndDate()));
-            pstmt.setTimestamp(5, Timestamp.valueOf(course.getStartTime()));
-            pstmt.setTimestamp(6, Timestamp.valueOf(course.getEndTime()));
+            pstmt.setTime(5, Time.valueOf(course.getStartTime()));
+            pstmt.setTime(6, Time.valueOf(course.getEndTime()));
             pstmt.setInt(7, course.getPartialPerAbsence());
             pstmt.setInt(8, course.getAllowanceThreshold());
             pstmt.setInt(9, course.getCompletionThreshold());
