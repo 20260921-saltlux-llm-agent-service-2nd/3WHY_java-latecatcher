@@ -10,8 +10,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Member {
 
+// ③ 회원가입용 생성자 (member_id는 AUTO_INCREMENT라 제외)
+public class Member {
     private int memberId;
     private String name;
     private int age;

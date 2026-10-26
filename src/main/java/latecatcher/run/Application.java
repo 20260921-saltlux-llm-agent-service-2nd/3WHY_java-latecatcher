@@ -65,8 +65,8 @@ public class Application {
         int age = readInt(scanner, "나이: ");
         System.out.print("휴대폰 번호 (예: 010-1234-5678): ");
         String phone = scanner.nextLine().trim();
-        System.out.println("준비중입니다.");
 
+        controller.signUp(name, age, phone);
     }
 
     private static boolean login(Scanner scanner, MemberController controller) {
