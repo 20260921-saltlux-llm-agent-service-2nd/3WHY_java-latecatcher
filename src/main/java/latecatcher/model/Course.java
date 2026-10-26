@@ -1,6 +1,9 @@
 package latecatcher.model;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -9,15 +12,30 @@ import java.time.LocalTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString
 public class Course {
+
     private int courseId;
-    private String name; // 강의명
-    private LocalDate startDate; // 강의 시작일
-    private LocalDate endDate; // 강의 종료일
-    private LocalTime startTime; // 수업 시작 (course_tbl.start_time TIME)
-    private LocalTime endTime; // 수업 종료 (course_tbl.end_time TIME)
-    private int partialPerAbsence; // 지각·조퇴·외출 n회 = 결석 1일
-    private int allowanceThreshold; //장려금 기준 %
-    private int completionThreshold; //수료 기준 %
+    private String name;
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private int partialPerAbsence;
+    private int allowanceThreshold;
+    private int completionThreshold;
+
+    @Override
+    public String toString() {
+        return "Course{" +
+                "courseId=" + courseId +
+                ", name='" + name + '\'' +
+                ", startDate=" + startDate +
+                ", endDate=" + endDate +
+                ", startTime=" + startTime +
+                ", endTime=" + endTime +
+                ", partialPerAbsence=" + partialPerAbsence +
+                ", allowanceThreshold=" + allowanceThreshold +
+                ", completionThreshold=" + completionThreshold +
+                '}';
+    }
 }
