@@ -1,6 +1,8 @@
 package latecatcher.run;
 
 import latecatcher.controller.MemberController;
+import latecatcher.controller.AttendanceController;
+import latecatcher.view.AttendanceView;
 import latecatcher.model.Course;
 
 import java.time.LocalDate;
@@ -92,6 +94,9 @@ public class Application {
     }
 
     private static boolean runAttendanceTrackingMenu(Scanner scanner, MemberController controller) {
+        //출결 입력(L-05)용. View는 이 메서드가 받은 Scanner를 함께 쓴다. (System.in에 Scanner를 하나만 둔다)
+        AttendanceController attendanceController = new AttendanceController(new AttendanceView(scanner));
+
         while (true) {
             printMenu();
             int choice = readInt(scanner, "메뉴 선택: ");
@@ -105,8 +110,8 @@ public class Application {
 
                 // 2. 출결 입력
                 case 2:
-                    // TODO: 출결 입력 로직 구현
                     System.out.println("\n[출결 입력]");
+                    attendanceController.inputAttendance(controller.getLoginMember());
                     break;
 
                 // 3. 반 전체 현황
