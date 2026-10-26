@@ -87,10 +87,11 @@ public class Application {
     private static boolean login(Scanner scanner, MemberController controller) {
         System.out.println();
         System.out.println("===== 로그인 =====");
-        System.out.print("휴대폰 번호 (예: 010-1234-5678): ");
-        String phone = scanner.nextLine().trim();
-        System.out.println("준비중입니다.");
-        return true;
+        String phone = readPhone(scanner, controller);
+        if (phone.isEmpty()) {
+            return false;
+        }
+        return controller.login(phone);
     }
 
     private static boolean runAttendanceTrackingMenu(Scanner scanner, MemberController controller) {
