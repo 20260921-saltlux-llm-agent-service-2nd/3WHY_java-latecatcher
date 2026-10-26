@@ -23,6 +23,7 @@ CREATE TABLE course_tbl                             -- 과정 설정, 1행만 �
     start_time           TIME         NOT NULL DEFAULT '09:20:00',  -- slx-ai-campus 수업 시작
     end_time             TIME         NOT NULL DEFAULT '18:20:00',  -- slx-ai-campus 수업 종료
     partial_per_absence  INT          NOT NULL DEFAULT 3,   -- 지각·조퇴·외출 n회 = 결석 1일
+    min_attend_minutes   INT          NOT NULL DEFAULT 240, -- 최소 수업 시간(분). 퇴실 − (입실과 시작 중 늦은 쪽)이 이보다 짧으면 결석
     allowance_threshold  INT          NOT NULL DEFAULT 80,  -- 장려금 기준 %
     completion_threshold INT          NOT NULL DEFAULT 80,  -- 수료 기준 %
     PRIMARY KEY (course_id),
@@ -56,7 +57,7 @@ CREATE TABLE attendance_tbl                         -- 출결 1건 = 훈련생 1
     attend_date   DATE NOT NULL,
     check_in      TIME,
     check_out     TIME,
-    status        ENUM ('PRESENT','LATE','EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL,
+    status        ENUM ('PRESENT','LATE','EARLY_LEAVE','LATE_EARLY_LEAVE','OUTING','ABSENT','EXCUSED') NOT NULL, -- LATE_EARLY_LEAVE = 같은 날 지각과 조퇴를 모두 인정 (환산 2회)
     memo          VARCHAR(255),
     source        ENUM ('MANUAL','WORK24') NOT NULL DEFAULT 'MANUAL', -- v0.2 가져오기(L-06)용. v0.1은 항상 MANUAL
     PRIMARY KEY (attendance_id),
@@ -83,17 +84,20 @@ CREATE TABLE import_log_tbl                         -- 출결 가져오기 기�
         FOREIGN KEY (imported_by) REFERENCES member_tbl (member_id) ON DELETE CASCADE -- 탈퇴(L-11)하면 가져오기 기록도 지운다
 );
 
--- 월별 집계 뷰: SQL은 세기만 하고, 출석률 계산은 Java(AttendanceRule)가 한다
+-- 월별 집계 뷰: SQL은 상태별 개수만 구하고, 출석률 계산은 Java(AttendanceRule)가 한다
+-- LATE_EARLY_LEAVE(지각·조퇴)인 날은 late_cnt와 early_cnt에 모두 포함한다. 그래서 cnt 컬럼의 합은 기록 일수가 아니다
+-- 기록 일수는 record_cnt를 쓴다
 CREATE OR REPLACE VIEW v_monthly_attendance AS
 SELECT m.member_id,
        m.name,
-       DATE_FORMAT(a.attend_date, '%Y-%m') AS ym,
-       SUM(a.status = 'PRESENT')           AS present_cnt,
-       SUM(a.status = 'LATE')              AS late_cnt,
-       SUM(a.status = 'EARLY_LEAVE')       AS early_cnt,
-       SUM(a.status = 'OUTING')            AS outing_cnt,
-       SUM(a.status = 'ABSENT')            AS absent_cnt,
-       SUM(a.status = 'EXCUSED')           AS excused_cnt
+       DATE_FORMAT(a.attend_date, '%Y-%m')                  AS ym,
+       COUNT(*)                                             AS record_cnt,
+       SUM(a.status = 'PRESENT')                            AS present_cnt,
+       SUM(a.status IN ('LATE', 'LATE_EARLY_LEAVE'))        AS late_cnt,
+       SUM(a.status IN ('EARLY_LEAVE', 'LATE_EARLY_LEAVE')) AS early_cnt,
+       SUM(a.status = 'OUTING')                             AS outing_cnt,
+       SUM(a.status = 'ABSENT')                             AS absent_cnt,
+       SUM(a.status = 'EXCUSED')                            AS excused_cnt
 FROM member_tbl m
 JOIN attendance_tbl a ON a.member_id = m.member_id
 GROUP BY m.member_id, m.name, DATE_FORMAT(a.attend_date, '%Y-%m');

@@ -13,26 +13,45 @@ import java.util.OptionalDouble;
 // 출결 규칙. 상태 판정·환산, 결석·출석률·미입력 계산을 순수 Java로 한다.(PLAN3절) (L-05, L-08, L-09)
 public class AttendanceRule {
 
-    // PLAN 3절 판정 순서: 결석 -> 지각 -> 조퇴 -> 출석
+    // PLAN 3절 판정 순서: 기록 없음 → 최소 수업 시간 미달 → 지각·조퇴 → 지각 → 조퇴 → 출석
     public AttendanceStatus judge(LocalTime checkIn, LocalTime checkOut, Course course) {
-        if (checkIn == null || checkOut == null) { // 결석
+        if (checkIn == null || checkOut == null) {              // ① 기록 없음 → 결석
             return AttendanceStatus.ABSENT;
-        } else if (checkIn.isAfter(course.getStartTime())) { // 지각 먼저, 지각 다음에 조퇴를 하게 되면 지각으로 판정
-            return AttendanceStatus.LATE;
-        } else if (isEarlyLeave(checkOut, course)) { // 조퇴는 isEarlyLeave로 판단
-            return AttendanceStatus.EARLY_LEAVE;
-        } else { // 그 외의 경우 출석
-            return AttendanceStatus.PRESENT;
         }
+        if (!hasMinAttendance(checkIn, checkOut, course)) {     // ② 4시간 미만 → 결석 (지각이어도)
+            return AttendanceStatus.ABSENT;
+        }
+
+        boolean late = checkIn.isAfter(course.getStartTime());  // 시작 시각 이후 입실
+        boolean early = isEarlyLeave(checkOut, course);         // 종료 시각 이전 퇴실
+
+        if (late && early) {                                    // ③ 지각 1 + 조퇴 1
+            return AttendanceStatus.LATE_EARLY_LEAVE;
+        }
+        if (late) {                                             // ④
+            return AttendanceStatus.LATE;
+        }
+        if (early) {                                            // ⑤
+            return AttendanceStatus.EARLY_LEAVE;
+        }
+        return AttendanceStatus.PRESENT;                        // ⑥
     }
 
-    // 퇴실 시각이 있고 종료 시각 이전이면 true. 지각이면서 조퇴인 날 memo를 채울 때도 쓴다 (L-05)
+    // 종료 시각 이전에 퇴실하면 true. 최소 수업 시간 검사는 judge가 hasMinAttendance로 먼저 한다
     public boolean isEarlyLeave(LocalTime checkOut, Course course) {
         return checkOut != null && checkOut.isBefore(course.getEndTime());
     }
 
+    // classIn(입실 시간) = 실제 입실과 시작시간(09:20) 중 늦은 쪽
+    // checkOut 시간이 입실시간(classIn)으로부터 4시간(수업의 최소시간)보다 빠른지 판단하되, 빠르지 않으면 true 반환
+    // 10:20분 입실이면, 4시간 후인 14:20분 이후에 체크아웃을 했다면 최소 수업시간(4시간)을 채운 것으로 판단함.
+    public boolean hasMinAttendance(LocalTime checkIn, LocalTime checkOut, Course course) {
+        LocalTime classIn = checkIn.isAfter(course.getStartTime()) ? checkIn : course.getStartTime();
+        return !checkOut.isBefore(classIn.plusMinutes(course.getMinAttendMinutes()));
+    }
+
     /* PLAN 3절 출석률 공식:
-     * 환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출) / 3) * 3일은 partialPerAbsence에 기록(db)
+     * 환산 결석 = 결석 일수 + floor((지각 + 조퇴 + 외출, 지각이면서 조퇴인 날은 2회로 계산) / partialPerAbsence-partialPerAbsence 기본값은 3)
      * 출석률   = (기록 일수 − 공결 − 환산 결석) / (기록 일수 − 공결) × 100
      * 기록 일수 = 훈련 시작일 ~ 어제 사이의 수업일 가운데 출결 기록이 있는 날   (오늘 포함하지 않음)
      * 미입력 일수 = 같은 기간의 수업일 − 기록 일수   (계산에 넣지 않고 화면에만 보여 준다)

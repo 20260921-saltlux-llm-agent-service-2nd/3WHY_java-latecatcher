@@ -21,6 +21,7 @@ class AttendanceRuleTest {
         course.setStartTime(LocalTime.of(9, 20));
         course.setEndTime(LocalTime.of(18, 20));
         course.setPartialPerAbsence(3);
+        course.setMinAttendMinutes(240);   // 최소 수업 시간 4시간
         return course;
     }
 
@@ -39,11 +40,11 @@ class AttendanceRuleTest {
             rule.judge(LocalTime.of(9,20), LocalTime.of(18,20), course()));
     }
 
-    // 테스트2 - 지각이면서 조퇴면 지각(입실 기준)
+    // 지각이면서 조퇴(4시간 이상 수업)는 지각·조퇴 (10/26 결정, 환산 2회)
     @Test
-    void 지각이면서_조퇴는_지각() {
-        assertEquals(AttendanceStatus.LATE,
-                rule.judge(LocalTime.of(9,30), LocalTime.of(17,0), course()));
+    void 지각이면서_조퇴는_지각_조퇴() {
+        assertEquals(AttendanceStatus.LATE_EARLY_LEAVE,
+                rule.judge(LocalTime.of(9, 30), LocalTime.of(17, 0), course()));
     }
 
     // judge — 1분이라도 늦으면 지각
@@ -226,5 +227,72 @@ class AttendanceRuleTest {
     @Test
     void 기록이_없으면_빈_목록() {
         assertTrue(rule.recordsUntil(List.of(), LocalDate.of(2026, 10, 21)).isEmpty());
+    }
+    // 최소 수업 시간 — 정시 입실, 정확히 4시간 뒤 퇴실은 4시간을 채워 조퇴
+    @Test
+    void 정시_입실_4시간_정각_퇴실은_조퇴() {
+        assertEquals(AttendanceStatus.EARLY_LEAVE,
+                rule.judge(LocalTime.of(9, 20), LocalTime.of(13, 20), course()));
+    }
+
+    // 최소 수업 시간 — 1분이라도 모자라면 결석
+    @Test
+    void 정시_입실_4시간_전_퇴실은_결석() {
+        assertEquals(AttendanceStatus.ABSENT,
+                rule.judge(LocalTime.of(9, 20), LocalTime.of(13, 19), course()));
+    }
+
+    // 최소 수업 시간 — 지각하면 입실 시각부터 잰다. 10:20~13:20은 3시간이라 결석
+    @Test
+    void 지각_후_3시간만_있으면_결석() {
+        assertEquals(AttendanceStatus.ABSENT,
+                rule.judge(LocalTime.of(10, 20), LocalTime.of(13, 20), course()));
+    }
+
+    // 최소 수업 시간 — 10:20~14:20은 4시간을 채웠고 종료 전 퇴실이라 지각·조퇴
+    @Test
+    void 지각_후_4시간_채우고_퇴실하면_지각_조퇴() {
+        assertEquals(AttendanceStatus.LATE_EARLY_LEAVE,
+                rule.judge(LocalTime.of(10, 20), LocalTime.of(14, 20), course()));
+    }
+
+    // 최소 수업 시간 — 12:20~18:20은 6시간이고 종료까지 있었으니 지각
+    @Test
+    void 지각_후_종료까지_있으면_지각() {
+        assertEquals(AttendanceStatus.LATE,
+                rule.judge(LocalTime.of(12, 20), LocalTime.of(18, 20), course()));
+    }
+
+    // 최소 수업 시간 — 일찍 온 시간(08:50~09:20)은 포함하지 않는다. 09:20~13:00은 3시간 40분이라 결석
+    @Test
+    void 일찍_온_시간은_수업_시간에_포함하지_않는다() {
+        assertEquals(AttendanceStatus.ABSENT,
+                rule.judge(LocalTime.of(8, 50), LocalTime.of(13, 0), course()));
+    }
+
+    // 최소 수업 시간 — 기준은 상수가 아니라 Course 값이다. 3시간이면 10:20~13:20도 인정
+    @Test
+    void 기준이_3시간이면_지각_후_3시간_퇴실은_지각_조퇴() {
+        Course course = course();
+        course.setMinAttendMinutes(180);
+        assertEquals(AttendanceStatus.LATE_EARLY_LEAVE,
+                rule.judge(LocalTime.of(10, 20), LocalTime.of(13, 20), course));
+    }
+
+    // 환산 횟수 — 지각·조퇴는 2회
+    @Test
+    void 지각_조퇴는_환산_횟수_2회() {
+        assertEquals(2, AttendanceStatus.LATE_EARLY_LEAVE.getPartialCount());
+    }
+
+    // 환산 횟수 — 지각·조퇴·외출은 1회, 출석·결석·공결은 0회
+    @Test
+    void 상태별_환산_횟수() {
+        assertEquals(1, AttendanceStatus.LATE.getPartialCount());
+        assertEquals(1, AttendanceStatus.EARLY_LEAVE.getPartialCount());
+        assertEquals(1, AttendanceStatus.OUTING.getPartialCount());
+        assertEquals(0, AttendanceStatus.PRESENT.getPartialCount());
+        assertEquals(0, AttendanceStatus.ABSENT.getPartialCount());
+        assertEquals(0, AttendanceStatus.EXCUSED.getPartialCount());
     }
 }

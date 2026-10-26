@@ -21,6 +21,7 @@ public class Course {
     private LocalTime startTime;
     private LocalTime endTime;
     private int partialPerAbsence;
+    private int minAttendMinutes = 240; // 최소 수업 시간(분). course_tbl.min_attend_minutes, 기본 240(4시간). 미만이면 결석
     private int allowanceThreshold;
     private int completionThreshold;
 
@@ -34,6 +35,7 @@ public class Course {
                 ", startTime=" + startTime +
                 ", endTime=" + endTime +
                 ", partialPerAbsence=" + partialPerAbsence +
+                ", minAttendMinutes=" + minAttendMinutes +
                 ", allowanceThreshold=" + allowanceThreshold +
                 ", completionThreshold=" + completionThreshold +
                 '}';
