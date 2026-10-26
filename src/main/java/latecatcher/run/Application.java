@@ -195,6 +195,7 @@ public class Application {
                 startTime,
                 endTime,
                 partialPerAbsence,
+                240, // minAttendMinutes: 최소 수업 시간(분). 입력받을지는 L-03에서 정한다
                 allowanceThreshold,
                 completionThreshold
         );
