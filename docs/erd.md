@@ -16,7 +16,7 @@
 | **팩트** (일어난 일, 1행 = 사건 1건) | `attendance_tbl` | 1행 = "누가 어느 날 몇 시에 와서 어떤 상태였나". 행이 날마다 늘어나고 집계(6절 뷰)의 대상이다 |
 | **차원** (누가) | `member_tbl` | 출결을 "누구의 것"으로 묶는다 |
 | **차원** (언제) | `class_day_tbl` | 출결을 "어느 수업일의 것"으로 묶는다. 날짜 차원과 같은 역할 |
-| 팩트 집계 | `v_monthly_attendance` (6절) | 팩트를 회원 × 월로 묶어 센다 |
+| 팩트 집계 | `v_monthly_attendance` (6절) | 팩트를 회원 × 월로 묶어 상태별 개수를 구한다 |
 | 스타 바깥 | `import_log_tbl`(가져오기 기록), `course_tbl`(설정 1행) | 출결과 FK로 잇지 않는다. `course_tbl`은 어떤 테이블과도 잇지 않는다 |
 
 닮은 것은 **모양**뿐이다. 데이터 웨어하우스의 스타 스키마는 조회를 빠르게 하려고 차원을 일부러 비정규화하기도 한다. 이 스키마는 입력·수정을 위한 설계라 3NF까지 정규화했다 (4절).
@@ -33,7 +33,7 @@ erDiagram
     import_log_tbl }o..o| member_tbl     : "가져오기 실행 (비식별, v0.2)"
     member_tbl     ||..o{ attendance_tbl : "출결을 남긴다 (비식별)"
     class_day_tbl  ||..o{ attendance_tbl : "그날의 출결 (비식별)"
-    attendance_tbl }|..|| v_monthly_attendance : "뷰가 읽음: 한 달 치를 1행으로 센다"
+    attendance_tbl }|..|| v_monthly_attendance : "뷰가 읽음: 한 달 치를 1행으로 묶는다"
     member_tbl     ||..o{ v_monthly_attendance : "뷰가 읽음: 이름"
 
     member_tbl {
@@ -52,6 +52,7 @@ erDiagram
         TIME         start_time              "NOT NULL, 기본 09:20 (slx-ai-campus)"
         TIME         end_time                "NOT NULL, 기본 18:20 (slx-ai-campus)"
         INT          partial_per_absence     "NOT NULL, 기본 3 (지각·조퇴·외출 n회 = 결석 1일)"
+        INT          min_attend_minutes      "NOT NULL, 기본 240 (최소 수업 시간 분. 미만이면 결석)"
         INT          allowance_threshold     "NOT NULL, 기본 80 (장려금 기준 %)"
         INT          completion_threshold    "NOT NULL, 기본 80 (수료 기준 %)"
     }
@@ -68,7 +69,7 @@ erDiagram
         DATE         attend_date   FK, UK "NOT NULL, INDEX idx_attendance_tbl_date"
         TIME         check_in             "NULL 허용"
         TIME         check_out            "NULL 허용, CHECK check_in 이후"
-        ENUM         status               "NOT NULL, PRESENT | LATE | EARLY_LEAVE | OUTING | ABSENT | EXCUSED"
+        ENUM         status               "NOT NULL, PRESENT | LATE | EARLY_LEAVE | LATE_EARLY_LEAVE | OUTING | ABSENT | EXCUSED"
         VARCHAR(255) memo                 "NULL 허용"
         ENUM         source               "MANUAL | WORK24, 기본 MANUAL (v0.2 L-06)"
     }
@@ -85,16 +86,17 @@ erDiagram
         INT         member_id   "VIEW, member_id + ym 이 한 행"
         VARCHAR(30) name        "member_tbl.name"
         CHAR(7)     ym          "YYYY-MM"
+        INT         record_cnt  "기록 일수 (행 수)"
         INT         present_cnt "PRESENT 횟수"
-        INT         late_cnt    "LATE 횟수"
-        INT         early_cnt   "EARLY_LEAVE 횟수"
+        INT         late_cnt    "LATE + LATE_EARLY_LEAVE 횟수"
+        INT         early_cnt   "EARLY_LEAVE + LATE_EARLY_LEAVE 횟수"
         INT         outing_cnt  "OUTING 횟수"
         INT         absent_cnt  "ABSENT 횟수"
         INT         excused_cnt "EXCUSED 횟수"
     }
 ```
 
-- **`v_monthly_attendance`는 테이블이 아니라 뷰다.** 데이터를 저장하지 않고, 조회할 때 `member_tbl`과 `attendance_tbl`을 읽어 센다. 그래서 PK·FK가 없다. 뷰로 가는 두 선은 FK 관계가 아니라 **"뷰가 읽는다"** 는 뜻이다. Mermaid에는 뷰 전용 선이 없어 점선으로 그리고, 관계 이름 앞에 `뷰가 읽음`을 붙여 구분한다. 자세한 것은 [6절](#6-뷰--v_monthly_attendance).
+- **`v_monthly_attendance`는 테이블이 아니라 뷰다.** 데이터를 저장하지 않고, 조회할 때 `member_tbl`과 `attendance_tbl`을 읽어 상태별 개수를 구한다. 그래서 PK·FK가 없다. 뷰로 가는 두 선은 FK 관계가 아니라 **"뷰가 읽는다"** 는 뜻이다. Mermaid에는 뷰 전용 선이 없어 점선으로 그리고, 관계 이름 앞에 `뷰가 읽음`을 붙여 구분한다. 자세한 것은 [6절](#6-뷰--v_monthly_attendance).
 - **`course_tbl`은 아무 테이블과도 잇지 않는다 (회의 결정).** 과정 설정 1행만 두는 설정표다. 출결 규칙(`AttendanceRule`)이 이 행의 시각·기준 %를 읽어 판정한다. 과정이 하나뿐이라 "어느 과정의 출결인가"의 답은 늘 이 한 행이다 ([4절 3NF](#3nf--이행-함수-종속을-없앤다)).
 - **v0.2용인 `role`, `source`, `import_log_tbl`도 미리 둔다.** v0.1 코드는 이 셋을 쓰지 않는다. 확장을 생각한 결정이다 ([PLAN.md 7절](PLAN.md#7-데이터-설계), 14절 10번).
 - **자유 입력 메모 열(`note`, `memo`)은 `VARCHAR(255)`로 통일한다.**
@@ -248,10 +250,10 @@ erDiagram
 
 ### 정규화와 헷갈리기 쉬운 것 — 일부러 이렇게 둔 것
 
-- **`attendance_tbl.status`를 저장한다.** 출석·지각·조퇴는 입실·퇴실 시각과 과정 시각으로 판정할 수 있다. 그래도 결석·공결·외출, 고용24에서 가져온 상태는 시각으로 정할 수 없다. 또 과정 시각을 나중에 바꿔도 **그날 판정한 결과**는 그대로 남아야 한다. 그래서 상태는 계산값이 아니라 기록이다. 3NF 위반이 아니다.
+- **`attendance_tbl.status`를 저장한다.** 출석·지각·조퇴는 입실·퇴실 시각과 과정 시각으로 판정할 수 있다. 그래도 결석·공결·외출, 고용24에서 가져온 상태는 시각으로 정할 수 없다. 또 과정 시각을 나중에 바꿔도 **그날 판정한 결과**는 그대로 남아야 한다. 그래서 상태는 계산값이 아니라 기록이다. 3NF 위반이 아니다. 같은 날 지각과 조퇴가 모두 인정되면 상태 열을 둘로 나누지 않고 `LATE_EARLY_LEAVE` 값 하나로 기록한다 (1NF 유지, 10/26 결정).
 - **`ENUM`(상태, 권한, 출처)을 쓴다.** 값 하나만 들어가므로 1NF를 지킨다. 값에 설명(한글 이름 등)을 붙여 DB에서 관리하려면 코드 테이블(`status_tbl`)로 뗄 수 있다. v0.1에서는 Java `enum`이 이름을 가진다.
 - **뷰(`v_monthly_attendance`)는 계산 결과다.** 그래도 저장하지 않고 조회할 때마다 계산하므로 중복도 이상도 없다.
-- **`import_log_tbl.row_count`를 저장한다.** 가져온 출결 행이 가져오기 기록을 가리키지 않으므로 다시 셀 방법이 없다. 그때 몇 행이었는지를 남기는 기록이다.
+- **`import_log_tbl.row_count`를 저장한다.** 가져온 출결 행이 가져오기 기록을 가리키지 않으므로 나중에 개수를 다시 구할 방법이 없다. 그때 몇 행이었는지를 남기는 기록이다.
 
 ## 5. 제약조건과 인덱스
 
@@ -279,20 +281,21 @@ PK는 이름을 붙이지 않는다. MySQL은 PK 이름을 항상 `PRIMARY`로 �
 
 ## 6. 뷰 — `v_monthly_attendance`
 
-훈련생별·월별로 상태마다 몇 번인지 센다. **SQL은 세기만 하고, 출석률 계산은 Java(`AttendanceRule`)가 한다.**
+훈련생별·월별로 상태마다 몇 번인지 개수를 구한다. **SQL은 상태별 개수만 구하고, 출석률 계산은 Java(`AttendanceRule`)가 한다.**
 
 ```mermaid
 erDiagram
     member_tbl     ||..o{ v_monthly_attendance : "이름을 가져온다"
-    attendance_tbl }|..|| v_monthly_attendance : "한 달 치를 1행으로 센다"
+    attendance_tbl }|..|| v_monthly_attendance : "한 달 치를 1행으로 묶는다"
 
     v_monthly_attendance {
         INT         member_id   "member_id + ym 이 한 행"
         VARCHAR(30) name        "member_tbl.name"
         CHAR(7)     ym          "YYYY-MM"
+        INT         record_cnt  "기록 일수 (행 수)"
         INT         present_cnt "PRESENT 횟수"
-        INT         late_cnt    "LATE 횟수"
-        INT         early_cnt   "EARLY_LEAVE 횟수"
+        INT         late_cnt    "LATE + LATE_EARLY_LEAVE 횟수"
+        INT         early_cnt   "EARLY_LEAVE + LATE_EARLY_LEAVE 횟수"
         INT         outing_cnt  "OUTING 횟수"
         INT         absent_cnt  "ABSENT 횟수"
         INT         excused_cnt "EXCUSED 횟수"
@@ -304,9 +307,10 @@ CREATE OR REPLACE VIEW v_monthly_attendance AS
 SELECT m.member_id,
        m.name,
        DATE_FORMAT(a.attend_date, '%Y-%m')                       AS ym,
+       COUNT(*)                                                   AS record_cnt,
        SUM(a.status = 'PRESENT')                                  AS present_cnt,
-       SUM(a.status = 'LATE')                                     AS late_cnt,
-       SUM(a.status = 'EARLY_LEAVE')                              AS early_cnt,
+       SUM(a.status IN ('LATE', 'LATE_EARLY_LEAVE'))              AS late_cnt,
+       SUM(a.status IN ('EARLY_LEAVE', 'LATE_EARLY_LEAVE'))       AS early_cnt,
        SUM(a.status = 'OUTING')                                   AS outing_cnt,
        SUM(a.status = 'ABSENT')                                   AS absent_cnt,
        SUM(a.status = 'EXCUSED')                                  AS excused_cnt
@@ -318,7 +322,9 @@ GROUP BY m.member_id, m.name, DATE_FORMAT(a.attend_date, '%Y-%m');
 ### 뷰 읽는 법
 
 - 뷰는 테이블이 아니다. 데이터를 따로 저장하지 않고, 조회할 때마다 위 `SELECT`를 실행한다. 그래서 PK·FK가 없다. ERD에서는 "어느 테이블을 읽는지"만 점선으로 보여 준다. 식별·비식별 관계가 아니라 **읽는 관계**다.
-- `SUM(a.status = 'LATE')`: MySQL에서 비교식은 참이면 1, 거짓이면 0이다. 그래서 `SUM`이 곧 "LATE인 행의 수"가 된다.
+- `SUM(a.status = 'PRESENT')`: MySQL에서 비교식은 참이면 1, 거짓이면 0이다. 그래서 `SUM`이 곧 "PRESENT인 행의 수"가 된다.
+- `SUM(a.status IN ('LATE', 'LATE_EARLY_LEAVE'))`: 지각·조퇴(`LATE_EARLY_LEAVE`)인 날은 `late_cnt`와 `early_cnt`에 **모두 포함**한다. 그래서 지각·조퇴·외출 합계(`late_cnt + early_cnt + outing_cnt`)에 그날이 2회로 들어가 PLAN 3절 환산과 맞는다.
+- **기록 일수는 `record_cnt`(`COUNT(*)`)를 쓴다.** 지각·조퇴인 날이 두 개수에 모두 포함되므로 `*_cnt` 컬럼을 더하면 기록 일수보다 커진다.
 - **`JOIN`(INNER JOIN)이라서 그 달 출결이 한 건도 없는 훈련생은 뷰에 나오지 않는다.** 그런 훈련생은 7절 쿼리로 따로 찾는다.
 
 ## 7. 그 달 기록이 없는 훈련생 찾기 — LEFT JOIN + IS NULL
