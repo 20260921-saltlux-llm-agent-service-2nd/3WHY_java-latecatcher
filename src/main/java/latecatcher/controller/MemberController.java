@@ -93,6 +93,10 @@ public class MemberController {
         return phone != null && phone.matches(PHONE_PATTERN);
     }
 
+    public Member getLoginMember() {
+        return loginMember;
+    }
+
 
     /*
      * L-03 과정 설정
@@ -176,6 +180,7 @@ public class MemberController {
      * */
 
 
+
     /*
      * L-09 반 전체 현황
      * 현재 loginMember를 null로 변경하고 "로그아웃되었습니다."를 출력한다.
@@ -186,14 +191,19 @@ public class MemberController {
      * L-10 로그아웃
      * 현재 loginMember를 null로 변경하고 "로그아웃되었습니다."를 출력한다.
      */
+    public void logout() {
+        loginMember = null;
+        memberView.displayMessage("로그아웃되었습니다.");
+    }
 
 
     /** L-11 회원 탈퇴 **/
     public boolean deleteMyAccount() {
 
-        // 로그인 (팀원 담당) → loginMember에 본인 정보 저장
-        if (loginMember != null) {
-            memberView.displayMessage("로그인 후 이용해주세요..");
+        // 로그인하지 않았으면 탈퇴할 회원이 없다
+        if (loginMember == null) {
+            memberView.displayMessage("로그인 후 이용해 주세요.");
+            return false;
         }
 
         // 탈퇴 선택 → loginMember의 번호를 deleteById()에 전달
