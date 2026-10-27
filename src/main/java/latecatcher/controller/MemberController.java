@@ -199,9 +199,10 @@ public class MemberController {
     /** L-11 회원 탈퇴 **/
     public boolean deleteMyAccount() {
 
-        // 로그인 (팀원 담당) → loginMember에 본인 정보 저장
-        if (loginMember != null) {
-            memberView.displayMessage("로그인 후 이용해주세요..");
+        // 로그인하지 않았으면 탈퇴할 회원이 없다
+        if (loginMember == null) {
+            memberView.displayMessage("로그인 후 이용해 주세요.");
+            return false;
         }
 
         // 탈퇴 선택 → loginMember의 번호를 deleteById()에 전달

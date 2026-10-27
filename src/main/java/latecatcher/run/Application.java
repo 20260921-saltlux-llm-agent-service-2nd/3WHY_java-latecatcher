@@ -142,8 +142,9 @@ public class Application {
 
                 // 6. 회원 탈퇴
                 case 6:
-                    // TODO: 회원 탈퇴 로직 구현
-                    System.out.println("\n[회원 탈퇴 처리]");
+                    if (withdraw(scanner, controller)) {
+                        return false; // 탈퇴하면 로그인 정보가 없으므로 시작 메뉴로 복귀
+                    }
                     break;
 
                 // 7. 로그아웃 (로그인 정보를 지우고 시작 메뉴로 복귀)
@@ -228,6 +229,22 @@ public class Application {
         );
 
         controller.addCourse(course);
+    }
+
+    // L-11 회원 탈퇴. Y를 입력해야 탈퇴하고, 그 밖의 입력은 취소한다
+    // 출결 기록은 attendance_tbl의 FK ON DELETE CASCADE로 회원과 함께 지워진다
+    private static boolean withdraw(Scanner scanner, MemberController controller) {
+        System.out.println();
+        System.out.println("===== 회원 탈퇴 =====");
+        System.out.println("탈퇴하면 회원 정보와 모든 출결 기록이 삭제됩니다.");
+        System.out.print("정말 탈퇴하시겠습니까? (Y/N): ");
+        String answer = scanner.nextLine().trim();
+
+        if (!answer.equalsIgnoreCase("Y")) {
+            System.out.println("탈퇴를 취소했습니다.");
+            return false;
+        }
+        return controller.deleteMyAccount();
     }
 
     private static int readInt(Scanner scanner, String message) {
