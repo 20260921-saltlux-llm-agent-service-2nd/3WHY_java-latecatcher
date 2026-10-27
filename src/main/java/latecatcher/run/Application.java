@@ -96,7 +96,7 @@ public class Application {
     }
 
     private static boolean runAttendanceTrackingMenu(Scanner scanner, MemberController controller) {
-        //출결 입력(L-05)용. View는 이 메서드가 받은 Scanner를 함께 쓴다. (System.in에 Scanner를 하나만 둔다)
+        //출결 입력(L-05)·내 출결 리스크(L-08)·반 전체 현황(L-09)용. View는 이 메서드가 받은 Scanner를 함께 쓴다. (System.in에 Scanner를 하나만 둔다)
         AttendanceController attendanceController = new AttendanceController(new AttendanceView(scanner));
 
         while (true) {
@@ -118,9 +118,8 @@ public class Application {
 
                 // 3. 반 전체 현황
                 case 3:
-                    // TODO: 반 전체 현황 조회 로직 구현
                     System.out.println("\n[반 전체 현황]");
-                    System.out.println("준비 중인 기능입니다.");
+                    attendanceController.showClassStatus();
                     break;
 
                 // 4. 과정 설정
