@@ -91,7 +91,7 @@ flowchart LR
 | DB | MySQL 8.0, `mysql-connector-j` 9.7.0 |
 | 라이브러리 | Lombok 1.18.46 |
 | 테스트 | JUnit (`junit-bom` 6.0.0, Jupiter) |
-| IDE | IntelliJ IDEA (macOS) |
+| IDE | IntelliJ IDEA (Windows) |
 
 
 <br>
@@ -142,10 +142,10 @@ flowchart LR
 | ~~L-06~~ | ~~출결 가져오기~~ | 고용24 출결 표를 복사한 텍스트 파일 가져오기 — **v0.2로 미룸** | — | — |
 | ~~L-07~~ | ~~결석 일괄 마감~~ | **삭제.** 기록이 없는 날은 결석이 아니라 "미입력"으로 본다 | — | — |
 | L-08 | 내 출결 리스크 | 이번 달 출석률·환산 결석을 계산하고 "결석 며칠 / 지각 몇 번 더면 80% 미달"을 경고 | 상 | RY |
-| L-09 | 반 전체 현황 | 월별 출석률 순위, 80% 미달·경계(85% 이하) 명단, 기록 없음 명단 | 중 | RY |
+| L-09 | 반 전체 현황 | 월별 출석률 순위, 장려금 기준(기본 80%) 미달·경계(기준 + 5%p 이하) 명단, 기록 없음 명단 | 중 | RY |
 | L-10 | 로그아웃 | 로그인 정보를 지우고 시작 메뉴로 | 하 | YY |
 | L-11 | 회원 탈퇴 | Y 확인 후 회원 정보와 출결 기록 삭제 (FK `ON DELETE CASCADE`) | 하 | RY |
-| L-12 | 프로그램 종료·메뉴 통합 | 시작 메뉴·과정 메뉴에서 종료, 전체 메뉴 흐름 통합, 잘못된 입력 처리 | 중 | YI |
+| L-12 | 프로그램 종료·메뉴 통합 | 시작 메뉴·과정 메뉴에서 종료, 전체 메뉴 흐름 통합, 잘못된 입력 처리 | 중 | YI, YY |
 
 기능별 유스케이스와 v0.2 계획(L-06 출결 가져오기, L-13 공휴일 API, L-14 디스코드 알림, L-16 관리자 권한)은 [docs/PLAN.md 4절](docs/PLAN.md#4-기능)에 있다.
 
@@ -248,7 +248,7 @@ erDiagram
 ### 4-1. 실행 방법 (내 컴퓨터에서 돌려 보기)
 
 > 같은 반 훈련생이 **자기 컴퓨터에서 받기 → DB 만들기 → 실행 → 자기 출결 입력**까지 따라 할 수 있게 쓴 안내다.
-> 모든 단계를 **IntelliJ IDEA** 안에서 한다. 단축키는 Windows 기준이고, macOS는 괄호 안에 적었다.
+> 모든 단계를 **IntelliJ IDEA** 안에서 한다. 단축키는 Windows 기준이다.
 
 #### ⓪ 준비물
 
@@ -271,9 +271,9 @@ erDiagram
 #### ② IntelliJ 설정 확인 — 처음 한 번
 
 1. **Gradle 동기화를 기다린다.** 오른쪽 아래 진행 막대가 사라질 때까지 둔다. 처음에는 Gradle과 라이브러리(MySQL 드라이버, Lombok, JUnit)를 내려받느라 몇 분 걸린다.
-2. **JDK** — **File → Project Structure** (`Ctrl+Alt+Shift+S`, macOS `⌘;`) → **Project → SDK**가 17 이상인지 본다.
+2. **JDK** — **File → Project Structure** (`Ctrl+Alt+Shift+S`) → **Project → SDK**가 17 이상인지 본다.
    없으면 SDK 목록 → **Download JDK** → Version **21**, Vendor **Eclipse Temurin** → Download.
-3. **Gradle JVM** — **File → Settings** (`Ctrl+Alt+S`, macOS `⌘,`) → **Build, Execution, Deployment → Build Tools → Gradle** → **Gradle JVM**을 2번의 JDK로 맞춘다.
+3. **Gradle JVM** — **File → Settings** (`Ctrl+Alt+S`) → **Build, Execution, Deployment → Build Tools → Gradle** → **Gradle JVM**을 2번의 JDK로 맞춘다.
 4. **(Windows 권장) 한글 깨짐 예방**
    - 같은 Gradle 화면에서 **Build and run using**과 **Run tests using**을 **IntelliJ IDEA**로 바꾼다.
    - **Settings → Editor → File Encodings**에서 **Global Encoding**, **Project Encoding**, **Default encoding for properties files**를 모두 **UTF-8**로 둔다.
@@ -295,8 +295,8 @@ erDiagram
 
 #### ④ 접속 정보 — `db.properties` 만들기
 
-1. **Project** 창 → `src/main/resources` → `db.properties.example`을 고르고 `Ctrl+C` (macOS `⌘C`)
-2. `resources` 폴더를 고르고 `Ctrl+V` (macOS `⌘V`) → 새 이름 `db.properties` → **OK**
+1. **Project** 창 → `src/main/resources` → `db.properties.example`을 고르고 `Ctrl+C`
+2. `resources` 폴더를 고르고 `Ctrl+V` → 새 이름 `db.properties` → **OK**
 3. `db.properties`를 열어 `user`, `password`를 ③에서 연결한 사용자로 바꾼다 (IntelliJ는 자동 저장).
 
 ```properties
@@ -313,9 +313,9 @@ password=비밀번호
 
 #### ⑤ 실행
 
-1. `Ctrl+Shift+N` (macOS `⌘⇧O`) → `Application` 입력 → [`Application.java`](src/main/java/latecatcher/run/Application.java)를 연다.
-2. `main` 왼쪽의 **초록 ▶** → **Run 'Application.main()'** (`Ctrl+Shift+F10`, macOS `⌃⇧R`)
-3. 아래 **Run 창**에 `===== 출결 관리 시스템 =====`이 뜨면 그 창을 클릭하고 번호를 입력한 뒤 Enter. 다음부터는 오른쪽 위 ▶ (`Shift+F10`, macOS `⌃R`)로 다시 실행한다.
+1. `Ctrl+Shift+N` → `Application` 입력 → [`Application.java`](src/main/java/latecatcher/run/Application.java)를 연다.
+2. `main` 왼쪽의 **초록 ▶** → **Run 'Application.main()'** (`Ctrl+Shift+F10`)
+3. 아래 **Run 창**에 `===== 출결 관리 시스템 =====`이 뜨면 그 창을 클릭하고 번호를 입력한 뒤 Enter. 다음부터는 오른쪽 위 ▶ (`Shift+F10`)로 다시 실행한다.
 
 > 작업 디렉터리는 **프로젝트 폴더**여야 한다. `db.properties`와 SQL 파일(`mapper/*.xml`)을 프로젝트 폴더 기준 상대 경로로 읽기 때문이다. IntelliJ 기본값이 프로젝트 폴더라 보통은 손댈 일이 없다.
 
