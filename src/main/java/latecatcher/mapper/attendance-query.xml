@@ -9,4 +9,15 @@
         VALUES (?, ?, ?, ?, ?, ?)
     </entry>
 
+    <!-- 이번 달 출결 종류별 개수 (L-08)
+     휴일·휴강일(is_class_day = FALSE) 기록은 개수에 포함하지 않는다 -->
+    <entry key="countStatusByPeriod">
+        SELECT a.status, COUNT(*) AS cnt
+        FROM attendance_tbl a
+        JOIN class_day_tbl c ON c.class_date = a.attend_date
+        WHERE a.member_id = ?
+          AND a.attend_date BETWEEN ? AND ?
+          AND c.is_class_day = TRUE
+        GROUP BY a.status
+    </entry>
 </properties>

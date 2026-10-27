@@ -106,8 +106,8 @@ public class Application {
             switch (choice) {
                 // 1. 내 출결 리스크 보기
                 case 1:
-                    // TODO: 내 출결 리스크 조회 로직 구현
                     System.out.println("\n[내 출결 리스크 조회]");
+                    attendanceController.showMyRisk(controller.getLoginMember());
                     break;
 
                 // 2. 출결 입력

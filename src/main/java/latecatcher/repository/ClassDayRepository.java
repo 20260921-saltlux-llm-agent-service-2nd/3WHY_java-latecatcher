@@ -90,6 +90,36 @@ public class ClassDayRepository {
         return 0;
     }
 
+    /**
+     * 기간 내 실제 수업일 개수 조회 (L-08 내 출결 리스크)
+     * - 공휴일·휴강일(is_class_day = FALSE)은 빼고 센다
+     * - countClassDays는 휴일까지 세서 중복 생성 확인에만 쓰고, 미입력 계산에는 이 메서드를 쓴다
+     * - 미입력 일수 = 이 값 − 기록 일수 (AttendanceRule.missingDays)
+     */
+    public int countRealClassDays(LocalDate start, LocalDate end) {
+        String sql = prop.getProperty("countRealClassDays");
+
+        try (Connection connection = JDBCTemplate.getConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+
+            // BETWEEN ? AND ? 에 시작일, 종료일 넣기
+            pstmt.setDate(1, Date.valueOf(start));
+            pstmt.setDate(2, Date.valueOf(end));
+
+            try (ResultSet rset = pstmt.executeQuery()) {
+                if (rset.next()) {
+                    return rset.getInt(1); // COUNT(*) 결과는 첫 번째 칸
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // COUNT(*)는 항상 1행을 돌려주므로 여기까지 오지 않는다
+        return 0;
+    }
+
 
     /**
      * 수업일 여러 개를 한 번에 저장
