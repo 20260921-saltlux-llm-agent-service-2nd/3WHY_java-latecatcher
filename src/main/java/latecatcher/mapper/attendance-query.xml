@@ -20,4 +20,57 @@
           AND c.is_class_day = TRUE
         GROUP BY a.status
     </entry>
+
+    <!-- 반 전체 현황: 그 달 기록이 1건 이상인 훈련생의 월별 집계 (L-09)
+     뷰가 훈련생·월마다 1행으로 묶어 두었으므로 조회 월로 거르기만 한다. 순위 정렬은 Java가 출석률로 한다 -->
+    <entry key="selectMonthlySummary">
+        SELECT member_id, name, ym, record_cnt,
+               present_cnt, late_cnt, early_cnt, outing_cnt, absent_cnt, excused_cnt
+        FROM v_monthly_attendance
+        WHERE ym = ?
+        ORDER BY member_id
+    </entry>
+
+    <!-- 반 전체 현황: 출석률이 장려금 기준(allowance_threshold) 미달인 훈련생 (L-09, HAVING)
+     - 출석률 공식은 AttendanceRule과 같다 (PLAN 3절)
+       환산 결석 = absent + FLOOR((late + early + outing) / partialPerAbsence)
+       출석률   = (record − excused − 환산 결석) / (record − excused) × 100
+     - 수업(08_Grouping) 방식대로 GROUP BY로 묶은 뒤 HAVING으로 거른다 (HAVING = 그룹화한 이후에 결과를 필터링)
+     - 뷰가 이미 훈련생·월마다 1행이라 SUM은 그 값 그대로다. 그래도 모든 컬럼에 SUM을 붙여야
+       ONLY_FULL_GROUP_BY 설정에서도 에러 없이 돈다 (팀원 PC의 MySQL 설정이 달라도 안전)
+     - 이슈 #11 메모의 예시(GROUP BY 없이 HAVING)와 결과가 같다 (10월: 4번 회원만, 기준 75·76·83·84·101로도 비교함)
+     - 공결만 있어 분모가 0이면 rate가 NULL이 되어 명단에 나오지 않는다 (attendanceRate의 empty와 같음)
+     - 파라미터: 1 partialPerAbsence, 2 조회 월("2026-10"), 3 장려금 기준 % -->
+    <entry key="selectBelowThreshold">
+        SELECT member_id, name, ym,
+               SUM(record_cnt)  AS record_cnt,
+               SUM(present_cnt) AS present_cnt,
+               SUM(late_cnt)    AS late_cnt,
+               SUM(early_cnt)   AS early_cnt,
+               SUM(outing_cnt)  AS outing_cnt,
+               SUM(absent_cnt)  AS absent_cnt,
+               SUM(excused_cnt) AS excused_cnt,
+               (SUM(record_cnt) - SUM(excused_cnt)
+                - (SUM(absent_cnt) + FLOOR((SUM(late_cnt) + SUM(early_cnt) + SUM(outing_cnt)) / ?)))
+               * 100.0 / (SUM(record_cnt) - SUM(excused_cnt)) AS rate
+        FROM v_monthly_attendance
+        WHERE ym = ?
+        GROUP BY member_id, name, ym
+        HAVING rate &lt; ?
+        ORDER BY member_id
+    </entry>
+
+    <!-- 반 전체 현황: 그 달 기록이 하나도 없는 훈련생 (L-09, LEFT JOIN + IS NULL, PLAN 7절)
+     - 기간 조건을 WHERE가 아니라 ON에 둔다. WHERE에 두면 기록 없는 회원(a가 NULL인 행)까지 걸러져 버린다
+     - 기록이 없는 회원은 a 쪽 컬럼이 모두 NULL로 붙으므로 attendance_id IS NULL로 골라낸다
+     - 파라미터: 1 시작일(그 달 1일), 2 종료일(min(말일, 어제)) -->
+    <entry key="selectMembersWithoutRecord">
+        SELECT m.member_id, m.name, m.phone
+        FROM member_tbl m
+        LEFT JOIN attendance_tbl a
+               ON a.member_id = m.member_id
+              AND a.attend_date BETWEEN ? AND ?
+        WHERE a.attendance_id IS NULL
+        ORDER BY m.member_id
+    </entry>
 </properties>
