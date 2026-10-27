@@ -22,7 +22,10 @@
     </entry>
 
     <!-- 반 전체 현황: 그 달 기록이 1건 이상인 훈련생의 월별 집계 (L-09)
-     뷰가 훈련생·월마다 1행으로 묶어 두었으므로 조회 월로 거르기만 한다. 순위 정렬은 Java가 출석률로 한다 -->
+     뷰가 훈련생·월마다 1행으로 묶어 두었으므로 조회 월로 거르기만 한다. 순위 정렬은 Java가 출석률로 한다
+     - 알려진 한계: 뷰는 휴일(is_class_day = FALSE)을 거르지 않는다. 출결을 넣은 뒤 그날을 휴일로 바꾸면
+       L-08(휴일 제외)과 출석률·미입력 일수가 달라질 수 있다 (이슈 #11 정할 것 2, erd.md 8절 2번)
+       지금은 수업일을 휴일로 바꾸는 기능이 없고 L-05가 휴일 입력을 막아 차이가 생기지 않는다 -->
     <entry key="selectMonthlySummary">
         SELECT member_id, name, ym, record_cnt,
                present_cnt, late_cnt, early_cnt, outing_cnt, absent_cnt, excused_cnt
