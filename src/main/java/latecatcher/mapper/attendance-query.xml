@@ -3,8 +3,14 @@
 <properties>
     <comment>AttendanceRepository SQL</comment>
 
+    <!-- 출석 -->
+    <entry key="insertAttendance">
+        INSERT INTO attendance_tbl (member_id, attend_date, check_in, check_out, status, memo)
+        VALUES (?, ?, ?, ?, ?, ?)
+    </entry>
+
     <!-- 이번 달 출결 종류별 개수 (L-08)
-     휴일·휴강일(is_class_day = FALSE) 기록은 세지 않는다 -->
+     휴일·휴강일(is_class_day = FALSE) 기록은 개수에 포함하지 않는다 -->
     <entry key="countStatusByPeriod">
         SELECT a.status, COUNT(*) AS cnt
         FROM attendance_tbl a
