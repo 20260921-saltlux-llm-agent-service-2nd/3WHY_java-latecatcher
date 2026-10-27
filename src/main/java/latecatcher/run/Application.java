@@ -120,6 +120,7 @@ public class Application {
                 case 3:
                     // TODO: 반 전체 현황 조회 로직 구현
                     System.out.println("\n[반 전체 현황]");
+                    System.out.println("준비 중인 기능입니다.");
                     break;
 
                 // 4. 과정 설정
@@ -129,12 +130,10 @@ public class Application {
 
                 // 5. 수업일 캘린더
                 case 5:
-                    // TODO: 수업일 캘린더 조회 로직 구현
                     ClassDayController classDayController = new ClassDayController();
 
                     System.out.println("\n[수업일 캘린더]");
-                    System.out.print("과정 번호 입력: ");
-                    int courseId = Integer.parseInt(scanner.nextLine());
+                    int courseId = readInt(scanner, "과정 번호 입력: "); // 숫자가 아니면 다시 묻는다
 
                     classDayController.generateClassDays(courseId);  // 수업일 없으면 생성
                     classDayController.showCalendar(courseId);       // 캘린더 출력
@@ -205,14 +204,9 @@ public class Application {
             partialPerAbsence = readInt(scanner, "지각·조퇴·외출 합산 결석 기준 횟수 (예: 3): ");
         }
 
-        System.out.print("훈련장려금 지급 기준 출석률 (%) (예: 80): ");
-        int allowanceThreshold = scanner.nextInt();
-
-        System.out.print("과정 수료 기준 출석률 (%) (예: 80): ");
-        int completionThreshold = scanner.nextInt();
-
-        // nextInt() 후 남아있는 Enter 버퍼 제거
-        scanner.nextLine();
+        // 숫자가 아니면 readInt가 다시 묻는다. 0~100 범위는 MemberController.addCourse가 확인한다
+        int allowanceThreshold = readInt(scanner, "훈련장려금 지급 기준 출석률 (%) (예: 80): ");
+        int completionThreshold = readInt(scanner, "과정 수료 기준 출석률 (%) (예: 80): ");
 
         // 5. Course 객체 생성 및 Controller 등록
         Course course = new Course(
