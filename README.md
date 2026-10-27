@@ -10,11 +10,13 @@
 
 직업훈련 과정에서는 매일 고용24 앱의 QR코드로 출결을 기록하며, 출석률은 훈련장려금 지급과 교육과정 수료에 중요한 영향을 미칩니다. 하지만 지각, 조퇴, 결석에 따른 출석률을 즉시 확인하기 어려워 직접 계산해야 하는 불편함이 있습니다. 이러한 문제를 해결하기 위해 출결 정보를 수동으로 입력하면 출석률과 결석 환산 결과를 자동으로 계산하는 프로그램을 기획했습니다. Java와 MySQL, JDBC를 활용하여 출결 관리 기능을 구현하고, JUnit을 통한 계산 규칙 검증과 GitHub 협업을 통해 실무 개발 역량을 강화하는 것을 목표로 합니다.
 
+
 - **프로젝트명**: 지각 잡는 자바 (java-latecatcher)
 - **팀명**: 3WHY >>>>> **3WHY** — 팀원 세 명의 이름이 모두 **Y**로 시작해서 *3Y → 3WHY* 🙌
 - **수행 기간**: 2026.10.21 ~ 2026.10.27
 - **주요 기능**: 휴대폰 번호 회원가입·로그인, 과정 설정, 수업일 캘린더, 출결 입력과 상태 자동 판정, 내 출결 리스크(출석률·80% 미달 경고), 반 전체 현황
 - **협업 도구**: GitHub (Issues, Pull Requests, Ruleset), Notion
+
 
 ### 개발 환경
 | 구분 | 사용 기술 |
@@ -25,6 +27,7 @@
 | 라이브러리 | Lombok 1.18.46 |
 | 테스트 | JUnit (`junit-bom` 6.0.0, Jupiter) |
 | IDE | IntelliJ IDEA (Windows) |
+
 
 
 ### 프로젝트 구조
@@ -76,9 +79,8 @@ flowchart LR
 
 ---
 
-
 ## 2. 팀 R&R
-> - 기능은 층이 아니라 **기능 단위로 세로 분할**했다. 한 사람이 한 기능을 model → repository → controller → view까지 만든다.
+> 기능은 층이 아니라 **기능 단위로 세로 분할**했다. 한 사람이 한 기능을 model → repository → controller → view까지 만든다.
 
 **YY · 팀장**
 - **기반 · 데이터 설계** — 합의 ERD, `schema.sql`·`insert.sql` / GitHub 저장소 세팅(라벨·템플릿·Ruleset), CONVENTION·PLAN·SCHEDULE 문서
@@ -112,6 +114,9 @@ flowchart LR
 
 협업 규칙(커밋·브랜치·라벨·이슈·PR)은 [docs/CONVENTION.md](docs/CONVENTION.md)에 있다.
 
+
+
+
 ### 요구사항 명세서 (개발 우선순위 선정)
 
 우선순위 기준 — **상**: 프로그램 동작에 필수 / **중**: 핵심 사용성 / **하**: 부가 기능
@@ -132,6 +137,9 @@ flowchart LR
 | L-12 | 프로그램 종료·메뉴 통합 | 시작 메뉴·과정 메뉴에서 종료, 전체 메뉴 흐름 통합, 잘못된 입력 처리 | 중 | YI, YY |
 
 기능별 유스케이스와 v0.2 계획(L-06 출결 가져오기, L-13 공휴일 API, L-14 디스코드 알림, L-16 관리자 권한)은 [docs/PLAN.md 4절](docs/PLAN.md#4-기능)에 있다.
+
+
+
 
 
 ### DB 설계 (ERD)
@@ -185,6 +193,8 @@ erDiagram
 | **월별 집계 뷰 `v_monthly_attendance`** | SQL은 상태별 개수만 구하고, 출석률 계산은 Java가 한다 (L-09용) |
 
 
+
+
 ### 출결 규칙 (코드의 심장)
 
 규칙 수치는 상수가 아니라 `course_tbl`의 설정값으로 읽는다. 구현은 [`AttendanceRule`](src/main/java/latecatcher/rule/AttendanceRule.java), 근거와 결정 기록은 [docs/PLAN.md 3절](docs/PLAN.md#3-출결-규칙-코드의-심장)에 있다.
@@ -211,6 +221,8 @@ erDiagram
 | `ABSENT` | 결석 | 0 (결석 1일로 계산) |
 | `EXCUSED` | 공결 | 0 (분모·분자에서 제외) |
 
+
+
 **출석률 공식**
 
 ```text
@@ -231,7 +243,7 @@ erDiagram
 
 ### 실행 방법 (내 컴퓨터에서 돌려 보기)
 
-> 같은 반 훈련생이 **자기 컴퓨터에서 받기 → DB 만들기 → 실행 → 자기 출결 입력**까지 따라 할 수 있게 쓴 안내다.
+> 같은 반 훈련생이 **자기 컴퓨터에서 받기 → DB 만들기 → 실행 → 자기 출결 입력**까지 따라 할 수 있게 쓴 안내다. <br>
 > 모든 단계를 **IntelliJ IDEA** 안에서 한다. 단축키는 Windows 기준이다.
 
 #### ⓪ 준비물
@@ -243,6 +255,8 @@ erDiagram
 | **MySQL 8.0 서버** | 켜져 있어야 한다 |
 | **이 프로젝트용 MySQL 사용자** | **root 대신 따로 만든 사용자를 쓰는 것을 권장한다.** 사용자 생성과 `latedb` 권한(ALL PRIVILEGES) 부여는 각자 한다 |
 
+
+
 #### ① 프로젝트 받기 — IntelliJ에서 clone
 
 1. IntelliJ 시작 화면 → **Clone Repository** 또는 **Get from VCS** (프로젝트가 열려 있으면 **File → New → Project from Version Control**)
@@ -251,6 +265,8 @@ erDiagram
 4. **Clone** → **Trust Project**. Git이 없다는 안내가 뜨면 **Download and Install**을 누른다.
 
 > ⚠ 경로에 한글이 있으면 Gradle 테스트가 실행되지 않는다. Windows **사용자 이름이 한글**(`C:\Users\홍길동`)이어도 같은 문제가 날 수 있다 → [문제 해결](#문제-해결--이런-메시지가-나오면)의 "Gradle user home".
+
+
 
 #### ② IntelliJ 설정 확인 — 처음 한 번
 
@@ -261,6 +277,8 @@ erDiagram
 4. **(Windows 권장) 한글 깨짐 예방**
    - 같은 Gradle 화면에서 **Build and run using**과 **Run tests using**을 **IntelliJ IDEA**로 바꾼다.
    - **Settings → Editor → File Encodings**에서 **Global Encoding**, **Project Encoding**, **Default encoding for properties files**를 모두 **UTF-8**로 둔다.
+
+
 
 #### ③ DB 만들기 — IntelliJ Database 창에서 `.sql` 실행
 
@@ -276,6 +294,8 @@ erDiagram
 
 > ⚠ `schema.sql`은 `latedb`에 있던 테이블을 **지우고 다시 만든다.**
 > ⚠ `insert.sql`을 두 번 실행하면 `Duplicate entry '010-1111-1111'` 오류가 난다. 다시 넣을 때는 `schema.sql`부터 다시 실행한다.
+
+
 
 #### ④ 접속 정보 — `db.properties` 만들기
 
@@ -295,6 +315,8 @@ password=비밀번호
 - MySQL 포트를 3306이 아닌 값으로 설치했다면 `url`의 포트도 바꾼다.
 - `db.properties`는 gitignore라 커밋되지 않는다.
 
+
+
 #### ⑤ 실행
 
 1. `Ctrl+Shift+N` → `Application` 입력 → [`Application.java`](src/main/java/latecatcher/run/Application.java)를 연다.
@@ -302,6 +324,8 @@ password=비밀번호
 3. 아래 **Run 창**에 `===== 출결 관리 시스템 =====`이 뜨면 그 창을 클릭하고 번호를 입력한 뒤 Enter. 다음부터는 오른쪽 위 ▶ (`Shift+F10`)로 다시 실행한다.
 
 > 작업 디렉터리는 **프로젝트 폴더**여야 한다. `db.properties`와 SQL 파일(`mapper/*.xml`)을 프로젝트 폴더 기준 상대 경로로 읽기 때문이다. IntelliJ 기본값이 프로젝트 폴더라 보통은 손댈 일이 없다.
+
+
 
 #### ⑥ 처음 써 보기
 
@@ -319,9 +343,12 @@ password=비밀번호
 | `010-3333-3333` | YI | 10월 기록 없음 — 출결 입력(L-05) 확인용 |
 | `010-4444-4444` | 더미 회원 | 미달 사례 — 지각·조퇴 1, 4시간 미만 결석 1 → 75.0% |
 
+
+
 #### ⑦ 테스트 (선택)
 
 **Project** 창 → `src/test/java` 오른쪽 클릭 → **Run 'All Tests'** (또는 **Run 'Tests in ...'**) → **43개가 모두 통과**하면 된다.
+
 
 #### 문제 해결 — 이런 메시지가 나오면
 
