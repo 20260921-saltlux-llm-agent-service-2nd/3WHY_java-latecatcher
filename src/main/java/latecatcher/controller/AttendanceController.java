@@ -2,8 +2,10 @@ package latecatcher.controller;
 
 import latecatcher.model.Attendance;
 import latecatcher.model.AttendanceStatus;
+import latecatcher.model.ClassStatusRow;
 import latecatcher.model.Course;
 import latecatcher.model.Member;
+import latecatcher.model.MonthlySummary;
 import latecatcher.repository.AttendanceRepository;
 import latecatcher.repository.ClassDayRepository;
 import latecatcher.repository.CourseRepository;
@@ -13,7 +15,10 @@ import latecatcher.view.AttendanceView;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.OptionalInt;
@@ -21,8 +26,11 @@ import java.util.OptionalInt;
 // 출결 입력 흐름 (L-05). 날짜·구분·시각을 확인하고 AttendanceRule로 판정해 저장한다
 // 입력과 출력은 AttendanceView가 하고, 판단·판정·저장은 여기서 한다 (나중에 메신저 입력 L-15도 같은 경로를 쓴다)
 // L-08 내 출결 리스크. 조회(Repository)와 계산(AttendanceRule, AttendanceRisk)을 모아 화면(AttendanceView)에 넘긴다
+// L-09 반 전체 현황. 월별 출석률 순위와 미달·경계 명단, 기록 없는 훈련생을 모아 화면에 넘긴다
 public class AttendanceController {
     private static final DateTimeFormatter RESULT_DATE = DateTimeFormatter.ofPattern("MM/dd");
+    // 경계 폭 (%p). 장려금 기준 이상, 기준 + 5%p 이하면 경계다 (이슈 #11 정할 것 4)
+    private static final int BORDER_MARGIN = 5;
 
     private final AttendanceView view;
     private final AttendanceRepository attendanceRepository = new AttendanceRepository();
@@ -168,5 +176,118 @@ public class AttendanceController {
         // 7. 화면 출력
         view.printRisk(start, end, classDays, recordDays, missing, counts,
                 converted, rate, moreAbsences, morePartials, course);
+    }
+
+    /*
+     * 반 전체 현황 (L-09, 이슈 #11)
+     * 흐름: 과정 조회 → 월 입력 → 조회 기간 → 조회(뷰·HAVING·LEFT JOIN) → 출석률·미입력 → 순위 정렬 → 경계 분류 → 화면 출력
+     * - 기준은 고정 80이 아니라 과정의 장려금 기준(allowance_threshold). 장려금은 월 출석률로 판정한다
+     * - 미달 명단은 HAVING으로 가져오고, 순위·경계는 Java(AttendanceRule)로 계산한다 (이슈 #11 정할 것 1)
+     * - 데이터는 바꾸지 않는다
+     */
+    public void showClassStatus() {
+        // 1. 과정 조회. L-05·L-08과 같은 findCourse()를 써야 메뉴 1과 출석률이 같게 나온다
+        Course course = courseRepository.findCourse();
+        if (course == null) {
+            view.displayMessage("과정 설정이 없습니다. 과정 설정을 먼저 해 주세요.");
+            return;
+        }
+        int threshold = course.getAllowanceThreshold();
+
+        // 2. 조회 월 입력. 훈련 기간 밖이면 안내 후 다시 묻는다 (예외 1a)
+        YearMonth month;
+        LocalDate start;
+        LocalDate end;
+        while (true) {
+            month = view.readMonth();
+            if (month == null) {  // Enter = 취소
+                return;
+            }
+
+            // 조회 기간 = 그 달 1일 ~ (그 달 말일·어제·과정 종료일 중 가장 이른 날). 과정 시작일보다 앞이면 시작일부터
+            // L-08과 같은 계산 기준일이다. 오늘은 퇴실 전이라 뺀다 (PLAN 3절)
+            start = month.atDay(1);
+            if (start.isBefore(course.getStartDate())) {
+                start = course.getStartDate();
+            }
+            end = month.atEndOfMonth();
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            if (yesterday.isBefore(end)) {
+                end = yesterday;
+            }
+            if (course.getEndDate().isBefore(end)) {
+                end = course.getEndDate();
+            }
+
+            // 시작이 끝보다 뒤면 그 달에 계산할 날이 없다 (훈련 기간 밖이거나 아직 오지 않은 달)
+            if (start.isAfter(end)) {
+                view.displayMessage("훈련 기간이 아닙니다.");
+                continue;
+            }
+            break;
+        }
+
+        // 3. 조회
+        //    - 순위 대상: 그 달 기록이 1건 이상인 훈련생 (v_monthly_attendance)
+        //    - 미달 명단: HAVING rate < 기준
+        //    - 기록 없음: LEFT JOIN … IS NULL. 순위에서 조용히 빼지 않고 따로 보여 준다
+        List<MonthlySummary> summaries = attendanceRepository.findMonthlySummaries(month);
+        List<MonthlySummary> belowList =
+                attendanceRepository.findBelowThreshold(month, course.getPartialPerAbsence(), threshold);
+        List<Member> noRecordMembers = attendanceRepository.findMembersWithoutRecord(start, end);
+        int classDays = classDayRepository.countRealClassDays(start, end); // 기간의 수업일 수 (휴일 제외)
+
+        // 4. 사람마다 출석률·미입력 계산 (L-08과 같은 AttendanceRule 공식)
+        List<ClassStatusRow> rows = new ArrayList<>();
+        for (MonthlySummary summary : summaries) {
+            int converted = rule.convertedAbsence(summary.getAbsentCnt(), summary.getPartialCnt(), course);
+            OptionalDouble rate = rule.attendanceRate(summary.getRecordCnt(), summary.getExcusedCnt(), converted);
+            int missing = rule.missingDays(classDays, summary.getRecordCnt());
+            rows.add(new ClassStatusRow(0, summary, rate, missing, false, false)); // 순위·분류는 아래에서 정한다
+        }
+
+        // 5. 순위 정렬: 출석률 높은 순. 출석률이 같으면 회원 번호 순, 계산할 수 없는 사람(empty)은 맨 뒤
+        //    - Double.compare(뒤, 앞)처럼 순서를 바꿔 넣으면 내림차순이 된다 (chap16 실습의 평점 내림차순과 같은 방식)
+        //    - compare 결과가 0(출석률 같음)이면 회원 번호로 한 번 더 비교한다
+        rows.sort((row1, row2) -> {
+            int byRate = Double.compare(rateForSort(row2), rateForSort(row1));
+            if (byRate != 0) {
+                return byRate;
+            }
+            return Integer.compare(row1.getSummary().getMemberId(), row2.getSummary().getMemberId());
+        });
+
+        // 6. 순위 매기기 + 경계·미달 분류
+        //    - 같은 출석률은 같은 순위, 다음 순위는 그 인원만큼 건너뛴다 (100, 100, 90 → 1, 1, 3)
+        //    - 경계 = 기준 이상, 기준 + 5%p 이하 / 미달 = 기준 미만
+        List<ClassStatusRow> ranked = new ArrayList<>();
+        int rank = 0;
+        double prevRate = -1;
+        for (int i = 0; i < rows.size(); i++) {
+            ClassStatusRow row = rows.get(i);
+            if (row.getRate().isEmpty()) { // 공결만 있음 → 순위·분류 없이 그대로
+                ranked.add(row);
+                continue;
+            }
+            double rate = row.getRate().getAsDouble();
+            if (rate != prevRate) {
+                rank = i + 1;
+                prevRate = rate;
+            }
+            boolean below = rate < threshold;
+            boolean border = !below && rate <= threshold + BORDER_MARGIN;
+            ranked.add(new ClassStatusRow(rank, row.getSummary(), row.getRate(), row.getMissingDays(), border, below));
+        }
+
+        // 7. 화면 출력
+        view.printClassStatus(month, start, end, classDays, ranked, belowList, noRecordMembers, course);
+    }
+
+    // 정렬용 출석률. 계산할 수 없는 사람(공결만 있음, empty)은 -1로 두어 맨 뒤로 보낸다
+    private double rateForSort(ClassStatusRow row) {
+        if (row.getRate().isPresent()) {
+            return row.getRate().getAsDouble();
+        }
+        return -1;
     }
 }
