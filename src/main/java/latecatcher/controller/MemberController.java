@@ -190,6 +190,10 @@ public class MemberController {
      * L-10 로그아웃
      * 현재 loginMember를 null로 변경하고 "로그아웃되었습니다."를 출력한다.
      */
+    public void logout() {
+        loginMember = null;
+        memberView.displayMessage("로그아웃되었습니다.");
+    }
 
 
     /** L-11 회원 탈퇴 **/

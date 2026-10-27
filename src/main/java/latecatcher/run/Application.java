@@ -146,10 +146,10 @@ public class Application {
                     System.out.println("\n[회원 탈퇴 처리]");
                     break;
 
-                // 8. 로그아웃 (상위 메뉴나 로그인 화면으로 복귀)
-                case 8:
-                    System.out.println("로그아웃 되었습니다.");
-                    return false; // false를 반환하여 프로그램은 계속 돌고 로그인 루프로 복귀
+                // 7. 로그아웃 (로그인 정보를 지우고 시작 메뉴로 복귀)
+                case 7:
+                    controller.logout();
+                    return false; // false를 반환하여 프로그램은 계속 돌고 시작 메뉴로 복귀
 
                 // 9. 프로그램 종료
                 case 9:
@@ -173,7 +173,7 @@ public class Application {
         System.out.println("4. 과정 설정");
         System.out.println("5. 수업일 캘린더");
         System.out.println("6. 회원 탈퇴");
-        System.out.println("7. 로그 아웃");
+        System.out.println("7. 로그아웃");
         System.out.println("9. 프로그램 종료");
     }
 
