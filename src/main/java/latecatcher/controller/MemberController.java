@@ -93,6 +93,10 @@ public class MemberController {
         return phone != null && phone.matches(PHONE_PATTERN);
     }
 
+    public Member getLoginMember() {
+        return loginMember;
+    }
+
 
     /*
      * L-03 과정 설정
