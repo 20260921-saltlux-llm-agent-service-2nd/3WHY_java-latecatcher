@@ -53,7 +53,7 @@
    │  ├─ java/latecatcher
    │  │  ├─ run/Application.java          # 시작 메뉴·과정 메뉴, 입력 루프
    │  │  ├─ controller/                   # MemberController, AttendanceController, ClassDayController
-   │  │  ├─ model/                        # Member, Course, ClassDay, Attendance, AttendanceStatus(enum)
+   │  │  ├─ model/                        # Member, Course, ClassDay, Attendance, AttendanceStatus(enum), MonthlySummary, ClassStatusRow
    │  │  ├─ repository/                   # Member·Course·ClassDay·AttendanceRepository (JDBC)
    │  │  ├─ rule/                         # + 출결 규칙 (순수 Java)
    │  │  │  ├─ AttendanceRule.java        #   판정·환산 결석·출석률·미입력
@@ -431,9 +431,11 @@ L-03에서 등록한 2번 과정(2027-04-08 ~ 04-12)의 날짜를 **한 트랜�
 
 </details>
 
-<details><summary><b>L-09 반 전체 현황</b> — 출석률 순위 · 80% 미달 · 경계(80~85%) · 기록 없음 · 훈련 기간 밖 월 · 형식 오류</summary>
+<details><summary><b>L-09 반 전체 현황</b> — 출석률 순위 · 80% 미달 · 경계(80% 이상 85% 이하) · 기록 없음 · 훈련 기간 밖 월 · 형식 오류</summary>
 
-<img src="docs/images/l09-class-status.png" alt="L-09 반 전체 현황 — 출석률 순위 · 80% 미달 · 경계(80~85%) · 기록 없음 · 훈련 기간 밖 월 · 형식 오류" width="480">
+미달 명단은 SQL `HAVING`으로, 기록 없음은 `LEFT JOIN … IS NULL`로 구하고, 순위·경계는 L-08과 같은 `AttendanceRule`로 계산한다.
+
+<img src="docs/images/l09-class-status.png" alt="L-09 반 전체 현황 — 출석률 순위 · 80% 미달 · 경계(80% 이상 85% 이하) · 기록 없음 · 훈련 기간 밖 월 · 형식 오류" width="480">
 
 </details>
 
@@ -468,7 +470,7 @@ L-03에서 등록한 2번 과정(2027-04-08 ~ 04-12)의 날짜를 **한 트랜�
 | L-05 | 출결 규칙 (`AttendanceRule`) | — | ✅ 완료 | #28, #30 |
 | L-05 | 출결 입력 | 2 | ✅ 완료 | #35 |
 | L-08 | 내 출결 리스크 | 1 | ✅ 완료 | #34 |
-| L-09 | 반 전체 현황 | 3 | ✅ 완료 | #__ |
+| L-09 | 반 전체 현황 | 3 | ✅ 완료 | #40 |
 | L-10 | 로그아웃 | 7 | ✅ 완료 | #39 |
 | L-11 | 회원 탈퇴 | 6 | ✅ 완료 | #27 (탈퇴 로직), #39 (Y 확인·메뉴 연결) |
 | L-12 | 프로그램 종료·메뉴 통합 | 9 | ✅ 완료 | #39 (잘못된 입력에도 종료되지 않음) |
@@ -477,6 +479,7 @@ L-03에서 등록한 2번 과정(2027-04-08 ~ 04-12)의 날짜를 **한 트랜�
 - 수업일 캘린더는 주말만 빼고 만든다. 공휴일·휴강 등록 메뉴가 없어 샘플 공휴일은 `insert.sql`에 넣어 두었다.
 - 수업일을 만들면 "N일의 수업일이 생성되었습니다."의 N에 주말도 포함된다 (예: 04/08 ~ 04/12 → 5일 = 수업 3일 + 주말 2일). 요일은 `MONDAY`처럼 영어로 나온다.
 - 없는 과정 번호를 넣으면 "존재하지 않는 과정입니다."가 두 번 나온다 (생성과 조회가 각각 안내한다).
+- 반 전체 현황(L-09)이 쓰는 월별 집계 뷰는 휴일을 거르지 않는다. 지금은 수업일을 휴일로 바꾸는 기능이 없고 L-05가 휴일 입력을 막아 내 출결 리스크(L-08)와 결과가 같다.
 - 과정을 여러 개 등록해도 출결 판정은 가장 먼저 등록한 과정(가장 작은 `course_id`)을 쓴다. 여러 과정 관리는 v0.1 범위 밖이다.
 - 잘못 입력한 출결을 고치거나 지우는 기능이 없다 (v0.2에서 고용24 표 가져오기로 바로잡을 계획).
 
