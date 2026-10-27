@@ -8,7 +8,7 @@
 1. [프로젝트 개요](#1-프로젝트-개요)
 2. [팀 R&R](#2-팀-rr)
 3. [수행 절차 및 방법](#3-수행-절차-및-방법)
-4. [수행 결과](#4-수행-결과)
+4. [수행 결과](#4-수행-결과) — [실행 방법](#4-1-실행-방법-내-컴퓨터에서-돌려-보기) · [사용 화면](#4-2-사용-화면)
 5. [회고](#5-회고)
 6. [참고 문서](#6-참고-문서)
 
@@ -34,7 +34,7 @@
 | 프로젝트명 | 지각 잡는 자바 (java-latecatcher) |
 | 팀명 | 3WHY |
 | 수행 기간 | 2026.10.21 ~ 2026.10.27 |
-| 주요 기능 | 휴대폰 번호 회원가입·로그인, 과정 설정, 수업일 캘린더, 출결 입력과 상태 자동 판정, 내 출결 리스크(출석률·80% 미달 경고) |
+| 주요 기능 | 휴대폰 번호 회원가입·로그인, 과정 설정, 수업일 캘린더, 출결 입력과 상태 자동 판정, 내 출결 리스크(출석률·80% 미달 경고), 반 전체 현황 |
 | 협업 도구 | GitHub (Issues, Pull Requests, Ruleset), Notion |
 
 
@@ -47,29 +47,32 @@
 ├─ build.gradle
 ├─ data/sample.txt                        # 고용24 출결 표를 복사한 모양의 견본 (v0.2 가져오기용)
 ├─ docs/                                  # PLAN, CONVENTION, SCHEDULE, ERD
+│  └─ images/                             # README 실행 화면 캡처
 └─ src
    ├─ main
    │  ├─ java/latecatcher
-   │  │  ├─ run/Application.java          # 시작 메뉴·출결 메뉴, 입력 루프
+   │  │  ├─ run/Application.java          # 시작 메뉴·과정 메뉴, 입력 루프
    │  │  ├─ controller/                   # MemberController, AttendanceController, ClassDayController
    │  │  ├─ model/                        # Member, Course, ClassDay, Attendance, AttendanceStatus(enum)
    │  │  ├─ repository/                   # Member·Course·ClassDay·AttendanceRepository (JDBC)
-   │  │  ├─ rule/AttendanceRule.java      # + 출결 규칙 — 판정·환산 결석·출석률·미입력 (순수 Java)
+   │  │  ├─ rule/                         # + 출결 규칙 (순수 Java)
+   │  │  │  ├─ AttendanceRule.java        #   판정·환산 결석·출석률·미입력
+   │  │  │  └─ AttendanceRisk.java        #   "결석 며칠 / 지각 몇 번 더면 미달" 계산
    │  │  ├─ view/                         # MemberView, AttendanceView, ClassDayView
    │  │  ├─ mapper/*-query.xml            # SQL (Properties.loadFromXML)
    │  │  └─ common/JDBCTemplate.java      # DB 연결
    │  └─ resources
    │     ├─ db.properties.example         # 접속 정보 견본 (db.properties는 gitignore)
    │     └─ db/schema.sql, insert.sql     # 스키마와 샘플 데이터
-   └─ test/java/latecatcher/rule/AttendanceRuleTest.java
+   └─ test/java/latecatcher/rule/        # AttendanceRuleTest, AttendanceRiskTest
 ```
 
 ```mermaid
 flowchart LR
-    App["run.Application<br/>메뉴·입력"] --> MC["MemberController<br/>회원가입·로그인·과정 설정"]
-    App --> AC["AttendanceController<br/>출결 입력·리스크"]
+    App["run.Application<br/>메뉴·입력"] --> MC["MemberController<br/>회원가입·로그인·과정 설정·탈퇴"]
+    App --> AC["AttendanceController<br/>출결 입력·리스크·반 전체 현황"]
     App --> CC["ClassDayController<br/>수업일 캘린더"]
-    AC --> Rule["rule.AttendanceRule<br/>판정·출석률 (순수 Java)"]
+    AC --> Rule["rule.AttendanceRule · AttendanceRisk<br/>판정·출석률·경고 (순수 Java)"]
     MC --> Repo[("repository + mapper XML")]
     AC --> Repo
     CC --> Repo
@@ -77,7 +80,7 @@ flowchart LR
 ```
 
 - View는 입력과 출력만 하고, 판단·판정·저장은 Controller가 한다. 나중에 메신저 입력 같은 다른 입력 경로를 붙여도 같은 판정·저장 경로를 쓰게 하기 위해서다.
-- `AttendanceRule`은 DB를 모르므로 JUnit으로 규칙만 따로 테스트할 수 있다.
+- `AttendanceRule`·`AttendanceRisk`는 DB를 모르므로 JUnit으로 규칙만 따로 테스트할 수 있다.
 
 
 ### 1-5. 개발 환경
@@ -101,9 +104,9 @@ flowchart LR
 
 | 팀원 | 역할 | 기반 책임 (0단계) | 담당 기능 |
 | --- | --- | --- | --- |
-| YY | 팀장 | **데이터 설계** — 합의 ERD, `schema.sql`·`insert.sql` / GitHub 저장소 세팅(라벨·템플릿·Ruleset), CONVENTION·PLAN·SCHEDULE 문서 | L-02 로그인, L-05 출결 규칙(`AttendanceRule` + JUnit), L-05 출결 입력 |
+| YY | 팀장 | **데이터 설계** — 합의 ERD, `schema.sql`·`insert.sql` / GitHub 저장소 세팅(라벨·템플릿·Ruleset), CONVENTION·PLAN·SCHEDULE 문서 | L-02 로그인, L-05 출결 규칙(`AttendanceRule` + JUnit), L-05 출결 입력, L-10 로그아웃, L-12 메뉴 통합 마무리 |
 | RY | 팀원 | **문서 구조** — 노션 페이지 트리, README 목차 | L-01 회원가입, L-11 회원 탈퇴, L-04 수업일 캘린더, L-08 내 출결 리스크, L-09 반 전체 현황 |
-| YI | 팀원 | **코드 구조** — 패키지·빌드 설정, 파일 뼈대·TODO | L-03 과정 설정, L-12 프로그램 종료·메뉴 통합 |
+| YI | 팀원 | **코드 구조** — 패키지·빌드 설정, 파일 뼈대·TODO | L-03 과정 설정, L-12 프로그램 종료 |
 
 - 기능은 층이 아니라 **기능 단위로 세로 분할**했다. 한 사람이 한 기능을 model → repository → controller → view까지 만든다.
 
@@ -120,7 +123,7 @@ flowchart LR
 | 기획 | 10.21 ~ 10.22 | 주제 선정(스켈레톤 변형), 노션 페이지 개설, 요구사항 명세 확정, 저장소 세팅 |
 | 설계 | 10.22 | 세 명이 각자 ERD 초안 → 종합 → ERD 회의로 합의 ERD 확정, `schema.sql`·`insert.sql`, 패키지 구조·파일 뼈대 |
 | 구현 | 10.23 ~ 10.26 | 기능별 이슈·브랜치·PR, approve 2 리뷰, **단계별 머지** (1 기반 → 2 기록 → 3 조회 → 4 통합) |
-| 테스트 | 10.26 ~ 10.27 | `AttendanceRuleTest`(JUnit), `insert.sql` 샘플로 기능별 확인, 상태 점검 회의 |
+| 테스트 | 10.26 ~ 10.27 | `AttendanceRuleTest`(JUnit), `insert.sql` 샘플로 기능별 확인, 상태 점검 회의, 새 컴퓨터에서 clone부터 실행까지 점검 |
 | 마무리 | 10.27 | README·노션 산출물 정리, 발표 |
 
 협업 규칙(커밋·브랜치·라벨·이슈·PR)은 [docs/CONVENTION.md](docs/CONVENTION.md)에 있다.
@@ -134,15 +137,15 @@ flowchart LR
 | L-01 | 회원가입 | 이름·나이·휴대폰 번호를 입력받아 등록. 빈 값, 나이(1 이상), 번호 형식(`010-1234-5678`)과 중복을 확인 | 상 | RY |
 | L-02 | 로그인 | 휴대폰 번호로 회원을 조회해 로그인 상태로 보관 (비밀번호 없음) | 상 | YY |
 | L-03 | 과정 설정 | 과정명, 훈련 기간, 수업 시작·종료 시각, 출결 기준값(환산 횟수, 장려금·수료 기준 %) 등록 | 상 | YI |
-| L-04 | 수업일 캘린더 | 훈련 기간의 날짜를 **한 트랜잭션으로** 생성(주말 제외)하고 달력 형태로 조회 | 중 | RY |
+| L-04 | 수업일 캘린더 | 훈련 기간의 날짜를 **한 트랜잭션으로** 생성(주말 제외)하고 날짜별로 조회 | 중 | RY |
 | L-05 | 출결 입력 | 날짜·구분(출석/결석)·입실·퇴실 시각을 받아 상태를 판정해 저장. 같은 날짜 중복은 안내 | 상 | YY |
 | ~~L-06~~ | ~~출결 가져오기~~ | 고용24 출결 표를 복사한 텍스트 파일 가져오기 — **v0.2로 미룸** | — | — |
 | ~~L-07~~ | ~~결석 일괄 마감~~ | **삭제.** 기록이 없는 날은 결석이 아니라 "미입력"으로 본다 | — | — |
 | L-08 | 내 출결 리스크 | 이번 달 출석률·환산 결석을 계산하고 "결석 며칠 / 지각 몇 번 더면 80% 미달"을 경고 | 상 | RY |
 | L-09 | 반 전체 현황 | 월별 출석률 순위, 80% 미달·경계(85% 이하) 명단, 기록 없음 명단 | 중 | RY |
 | L-10 | 로그아웃 | 로그인 정보를 지우고 시작 메뉴로 | 하 | YY |
-| L-11 | 회원 탈퇴 | 회원 정보와 출결 기록 삭제 (FK `ON DELETE CASCADE`) | 하 | RY |
-| L-12 | 프로그램 종료·메뉴 통합 | 시작 메뉴·출결 메뉴에서 종료, 전체 메뉴 흐름 통합 | 중 | YI |
+| L-11 | 회원 탈퇴 | Y 확인 후 회원 정보와 출결 기록 삭제 (FK `ON DELETE CASCADE`) | 하 | RY |
+| L-12 | 프로그램 종료·메뉴 통합 | 시작 메뉴·과정 메뉴에서 종료, 전체 메뉴 흐름 통합, 잘못된 입력 처리 | 중 | YI |
 
 기능별 유스케이스와 v0.2 계획(L-06 출결 가져오기, L-13 공휴일 API, L-14 디스코드 알림, L-16 관리자 권한)은 [docs/PLAN.md 4절](docs/PLAN.md#4-기능)에 있다.
 
@@ -242,47 +245,88 @@ erDiagram
 
 ## 4. 수행 결과
 
-### 4-1. 실행 방법
+### 4-1. 실행 방법 (내 컴퓨터에서 돌려 보기)
 
-**준비물:** JDK 17 이상, MySQL 8.0, IntelliJ IDEA
+> 같은 반 훈련생이 **자기 컴퓨터에서 받기 → DB 만들기 → 실행 → 자기 출결 입력**까지 따라 할 수 있게 쓴 안내다.
+> 모든 단계를 **IntelliJ IDEA** 안에서 한다. 단축키는 Windows 기준이고, macOS는 괄호 안에 적었다.
 
-**① 저장소 받기**
+#### ⓪ 준비물
 
-```bash
-git clone https://github.com/20260921-saltlux-llm-agent-service-2nd/3WHY_java-latecatcher.git
-cd 3WHY_java-latecatcher
+| 항목 | 비고 |
+| --- | --- |
+| **IntelliJ IDEA Ultimate** | 수업에서 쓰는 IntelliJ. ③에서 **Database** 창을 쓴다 |
+| **JDK 17 이상** | 없으면 ②에서 IntelliJ로 내려받는다 (팀은 Temurin 21) |
+| **MySQL 8.0 서버** | 켜져 있어야 한다 |
+| **이 프로젝트용 MySQL 사용자** | **root 대신 따로 만든 사용자를 쓰는 것을 권장한다.** 사용자 생성과 `latedb` 권한(ALL PRIVILEGES) 부여는 각자 한다 |
+
+#### ① 프로젝트 받기 — IntelliJ에서 clone
+
+1. IntelliJ 시작 화면 → **Clone Repository** 또는 **Get from VCS** (프로젝트가 열려 있으면 **File → New → Project from Version Control**)
+2. **URL**: `https://github.com/20260921-saltlux-llm-agent-service-2nd/3WHY_java-latecatcher.git`
+3. **Directory**: `C:\dev\3WHY_java-latecatcher` — **한글과 공백이 없는 경로**로 바꾼다
+4. **Clone** → **Trust Project**. Git이 없다는 안내가 뜨면 **Download and Install**을 누른다.
+
+> ⚠ 경로에 한글이 있으면 Gradle 테스트가 실행되지 않는다. Windows **사용자 이름이 한글**(`C:\Users\홍길동`)이어도 같은 문제가 날 수 있다 → [문제 해결](#문제-해결--이런-메시지가-나오면)의 "Gradle user home".
+
+#### ② IntelliJ 설정 확인 — 처음 한 번
+
+1. **Gradle 동기화를 기다린다.** 오른쪽 아래 진행 막대가 사라질 때까지 둔다. 처음에는 Gradle과 라이브러리(MySQL 드라이버, Lombok, JUnit)를 내려받느라 몇 분 걸린다.
+2. **JDK** — **File → Project Structure** (`Ctrl+Alt+Shift+S`, macOS `⌘;`) → **Project → SDK**가 17 이상인지 본다.
+   없으면 SDK 목록 → **Download JDK** → Version **21**, Vendor **Eclipse Temurin** → Download.
+3. **Gradle JVM** — **File → Settings** (`Ctrl+Alt+S`, macOS `⌘,`) → **Build, Execution, Deployment → Build Tools → Gradle** → **Gradle JVM**을 2번의 JDK로 맞춘다.
+4. **(Windows 권장) 한글 깨짐 예방**
+   - 같은 Gradle 화면에서 **Build and run using**과 **Run tests using**을 **IntelliJ IDEA**로 바꾼다.
+   - **Settings → Editor → File Encodings**에서 **Global Encoding**, **Project Encoding**, **Default encoding for properties files**를 모두 **UTF-8**로 둔다.
+
+#### ③ DB 만들기 — IntelliJ Database 창에서 `.sql` 실행
+
+`schema.sql`이 `latedb`와 테이블을 만들고, `insert.sql`이 샘플 데이터(우리 과정 1개, 수업일 120일, 회원 4명, 9~10월 출결)를 넣는다.
+
+1. 오른쪽 사이드바의 **Database** 창을 연다 (**View → Tool Windows → Database**).
+2. **+** → **Data Source** → **MySQL**
+3. **Host** `localhost`, **Port** `3306`, **User**·**Password**는 ⓪의 이 프로젝트용 사용자(④의 `db.properties`와 같은 계정)를 넣는다. **Database** 칸은 비워 둔다.
+   아래에 **Download missing driver files**가 보이면 누른다 → **Test Connection**이 **Succeeded**면 **OK**.
+4. **Project** 창 → `src/main/resources/db/schema.sql` 오른쪽 클릭 → **Run 'schema.sql'** → 3에서 만든 데이터 소스를 고른다 → 실행.
+5. 같은 방법으로 `src/main/resources/db/insert.sql`을 실행한다.
+6. 확인 — Database 창에서 새로고침(🔄) → `latedb` → `member_tbl`을 더블 클릭하면 샘플 회원 4명이 보인다.
+
+> ⚠ `schema.sql`은 `latedb`에 있던 테이블을 **지우고 다시 만든다.**
+> ⚠ `insert.sql`을 두 번 실행하면 `Duplicate entry '010-1111-1111'` 오류가 난다. 다시 넣을 때는 `schema.sql`부터 다시 실행한다.
+
+#### ④ 접속 정보 — `db.properties` 만들기
+
+1. **Project** 창 → `src/main/resources` → `db.properties.example`을 고르고 `Ctrl+C` (macOS `⌘C`)
+2. `resources` 폴더를 고르고 `Ctrl+V` (macOS `⌘V`) → 새 이름 `db.properties` → **OK**
+3. `db.properties`를 열어 `user`, `password`를 ③에서 연결한 사용자로 바꾼다 (IntelliJ는 자동 저장).
+
+```properties
+driver=com.mysql.cj.jdbc.Driver
+url=jdbc:mysql://localhost:3306/latedb
+# root 대신 이 프로젝트용으로 만든 MySQL 사용자를 권장한다
+user=latecatcher
+password=비밀번호
 ```
 
-**② DB 만들기** — `schema.sql`로 `latedb`와 테이블을 만들고, `insert.sql`로 샘플 데이터(과정 1개, 수업일, 회원 4명, 9~10월 출결)를 넣는다.
+- `user=latecatcher  # 내 계정`처럼 줄 끝에 주석을 붙이지 않는다. `.properties`에서는 줄 중간의 `#`도 값에 포함된다.
+- MySQL 포트를 3306이 아닌 값으로 설치했다면 `url`의 포트도 바꾼다.
+- `db.properties`는 gitignore라 커밋되지 않는다.
 
-```bash
-mysql -u root -p < src/main/resources/db/schema.sql
-mysql -u root -p < src/main/resources/db/insert.sql
-```
+#### ⑤ 실행
 
-> ⚠ `schema.sql`은 `latedb`의 기존 테이블을 **지우고 다시 만든다.** `insert.sql`을 두 번 실행하면 휴대폰 번호 중복으로 실패하므로, 다시 넣을 때는 `schema.sql`부터 실행한다.
-> 프로그램이 쓸 MySQL 계정에 `latedb` 권한이 있어야 한다 (예: `schema.sql` 위쪽 주석의 `CREATE USER` · `GRANT`).
+1. `Ctrl+Shift+N` (macOS `⌘⇧O`) → `Application` 입력 → [`Application.java`](src/main/java/latecatcher/run/Application.java)를 연다.
+2. `main` 왼쪽의 **초록 ▶** → **Run 'Application.main()'** (`Ctrl+Shift+F10`, macOS `⌃⇧R`)
+3. 아래 **Run 창**에 `===== 출결 관리 시스템 =====`이 뜨면 그 창을 클릭하고 번호를 입력한 뒤 Enter. 다음부터는 오른쪽 위 ▶ (`Shift+F10`, macOS `⌃R`)로 다시 실행한다.
 
-**③ 접속 정보 설정** — 견본을 복사한 뒤 `user`, `password`를 자기 MySQL 계정으로 바꾼다. `db.properties`는 gitignore라 커밋되지 않는다.
+> 작업 디렉터리는 **프로젝트 폴더**여야 한다. `db.properties`와 SQL 파일(`mapper/*.xml`)을 프로젝트 폴더 기준 상대 경로로 읽기 때문이다. IntelliJ 기본값이 프로젝트 폴더라 보통은 손댈 일이 없다.
 
-```bash
-cp src/main/resources/db.properties.example src/main/resources/db.properties
-```
+#### ⑥ 처음 써 보기
 
-**④ 실행** — IntelliJ에서 [`latecatcher.run.Application`](src/main/java/latecatcher/run/Application.java)의 `main`을 실행한다.
+1. **1. 회원가입** — 이름, 나이, 자기 휴대폰 번호(`010-1234-5678` 형식)
+2. **2. 로그인** — 방금 넣은 휴대폰 번호
+3. **2. 출결 입력** — 어제까지의 수업일을 골라 입실·퇴실 시각을 넣으면 출석·지각·조퇴·결석이 자동으로 판정된다
+4. **1. 내 출결 리스크 보기** — 이번 달 출석률과 "몇 번 더 하면 80% 미달"인지 확인한다
 
-- 작업 디렉터리는 **프로젝트 루트**여야 한다. `db.properties`와 `mapper/*.xml`을 프로젝트 루트 기준 상대 경로로 읽는다.
-- `./gradlew run`은 아직 쓸 수 없다. `build.gradle`의 `mainClass`가 스켈레톤 값(`solution.Answer`) 그대로라 `ClassNotFoundException`이 난다.
-
-**⑤ 테스트**
-
-```bash
-./gradlew test        # 실행 권한 오류가 나면: chmod +x gradlew 또는 sh gradlew test
-```
-
-> 프로젝트 경로에 한글이 들어 있으면 Gradle 테스트가 `ClassNotFoundException`으로 실행되지 않는다. 영어 경로에 clone한다.
-
-**샘플 계정 (`insert.sql`)** — 출결은 10/21까지 들어 있다.
+샘플 계정(`insert.sql`)으로 바로 로그인해 볼 수도 있다. 샘플 출결은 10/21까지 들어 있다.
 
 | 휴대폰 번호 | 회원 | 10월 기록으로 본 사례 |
 | --- | --- | --- |
@@ -291,8 +335,35 @@ cp src/main/resources/db.properties.example src/main/resources/db.properties
 | `010-3333-3333` | YI | 10월 기록 없음 — 출결 입력(L-05) 확인용 |
 | `010-4444-4444` | 더미 회원 | 미달 사례 — 지각·조퇴 1, 4시간 미만 결석 1 → 75.0% |
 
+#### ⑦ 테스트 (선택)
 
-### 4-2. 메뉴와 사용 예
+**Project** 창 → `src/test/java` 오른쪽 클릭 → **Run 'All Tests'** (또는 **Run 'Tests in ...'**) → **43개가 모두 통과**하면 된다.
+
+#### 문제 해결 — 이런 메시지가 나오면
+
+DB 처리에 실패하면 프로그램이 멈추지 않고 **무엇이 실패했는지**와 **원인**을 함께 보여 준다.
+
+<img src="docs/images/db-error.png" alt="DB 접속 오류 안내 화면" width="520">
+
+| 화면에 나온 메시지 | 원인 | 해결 |
+| --- | --- | --- |
+| `db.properties 파일을 읽지 못했습니다.` | `db.properties`를 만들지 않았다 | ④ |
+| `회원 SQL 파일을 읽지 못했습니다.`<br>원인: `src/main/java/latecatcher/mapper/member-query.xml ...` | 작업 디렉터리가 프로젝트 폴더가 아니다 | **Run → Edit Configurations → Working directory**를 프로젝트 폴더로 |
+| 원인: `Access denied for user '...'@'localhost' (using password: YES)` | 사용자 이름·비밀번호가 틀렸다 | `db.properties`의 `user`, `password` |
+| 원인: `Unknown database 'latedb'` | `schema.sql`을 실행하지 않았다 | ③ |
+| 원인: `Access denied for user '...'@'%' to database 'latedb'` | 그 사용자에게 `latedb` 권한이 없다 | 그 사용자에게 `latedb` 권한을 준다 (⓪) |
+| 원인: `Communications link failure` | MySQL 서버가 꺼져 있다 | MySQL 서버를 켠다 (Windows는 서비스 **MySQL80**) |
+| ③ Test Connection이 실패한다 | 사용자 이름·비밀번호, 서버 꺼짐, 드라이버 없음 | 입력값 확인, 서버 켜기, **Download missing driver files** |
+| `Duplicate entry '010-1111-1111'` (③ `insert.sql` 실행 중) | `insert.sql`을 두 번 실행했다 | `schema.sql` → `insert.sql` 다시 |
+| Run 창의 한글이 `???`이나 이상한 글자로 나온다 | 콘솔 인코딩 | ②-4를 적용한다. 그래도 깨지면 **Help → Edit Custom VM Options**에 `-Dfile.encoding=UTF-8`을 한 줄 추가하고 IntelliJ를 재시작 |
+| `java: cannot find symbol` (`getName()` 등) | Lombok 처리가 꺼져 있다 | **Settings → Build, Execution, Deployment → Compiler → Annotation Processors → Enable annotation processing** |
+| 테스트가 `ClassNotFoundException`·`GradleWorkerMain`으로 실패 / Gradle 동기화 실패 | 프로젝트 경로나 사용자 폴더에 한글이 있다 | 프로젝트를 `C:\dev` 아래로 다시 clone한다. 사용자 이름이 한글이면 **Settings → Build Tools → Gradle → Gradle user home**을 `C:\gradle`로 바꾸고 다시 동기화 |
+
+
+### 4-2. 사용 화면
+
+> 10/27에 `insert.sql` 샘플 데이터 위에서 실제로 실행한 기록이다. **초록색이 사용자가 입력한 값**이고, 반복되는 메뉴 출력은 `··· (생략) ···`으로 줄였다.
+> 예시 회원은 **홍길동**(`010-5555-5555`)이고, 샘플 회원 이름은 이니셜로 바꿔 캡처했다.
 
 ```text
 ===== 출결 관리 시스템 =====          ===== 과정 메뉴 =====
@@ -302,54 +373,91 @@ cp src/main/resources/db.properties.example src/main/resources/db.properties
                                        4. 과정 설정
                                        5. 수업일 캘린더
                                        6. 회원 탈퇴
-                                       7. 로그 아웃
+                                       7. 로그아웃
                                        9. 프로그램 종료
 ```
 
-**출결 입력 (L-05, 메뉴 2)** — YI 계정(`010-3333-3333`)으로 입력한 예
+#### 핵심 흐름 — 입실·퇴실만 넣으면 판정하고, 위험을 미리 알려 준다
 
-```text
-[출결 입력]
-날짜 (예: 2026-10-06), 취소 : Enter): 2026-10-02
-구분 (1. 출석 / 2. 결석): 1
-입실 시각 (예: 09:05): 09:30
-퇴실 시각 (예: 18:25, 퇴실 전이면 Enter): 18:25
-10/02 출결을 저장했습니다: 지각
-```
+**① 출결 입력 → 자동 판정 (L-05)** — 09:40 입실·16:50 퇴실은 **지각·조퇴**, 10:20 입실·13:20 퇴실은 들은 시간이 3시간이라 **결석**으로 저장된다 ([판정 순서](#3-4-출결-규칙-코드의-심장)).
 
-| 입력 | 결과 |
-| --- | --- |
-| 10/01 출석 09:15 – 18:25 | 출석 |
-| 10/02 출석 09:30 – 18:25 | 지각 |
-| 10/06 출석 09:15 – 17:00 | 조퇴 |
-| 10/07 출석 10:20 – 14:20 | 지각·조퇴 |
-| 10/08 출석 10:20 – 13:20 | 결석 (4시간 미만) |
-| 10/12 결석 | 결석 |
-| 10/09 한글날, 10/10 토요일 | "수업일이 아닙니다." 후 다시 입력 |
-| 오늘·내일 | "오늘 출결은 내일 입력하세요." 후 다시 입력 |
-| 퇴실 시각을 비움 | "퇴실한 뒤 입력하세요." 후 다시 입력 |
-| 이미 입력한 날짜 | "이미 기록이 있습니다." 후 다시 입력 (덮어쓰지 않음) |
+<img src="docs/images/main-1-attendance.png" alt="출결 입력 — 지각·조퇴, 4시간 미만 결석 판정" width="560">
 
-**내 출결 리스크 (L-08, 메뉴 1)** — YY 계정(`010-2222-2222`)으로 10/27에 조회한 예 (PR #34 기준)
+**② 내 출결 리스크 (L-08)** — 이번 달 출석률을 계산하고, **결석 며칠·지각 몇 번 더 하면 장려금 기준(80%) 아래**인지 알려 준다. (샘플 YY 계정, 출석률 83.3%)
 
-```text
-[내 출결 리스크 조회]
-과정 번호 입력: 1
+<img src="docs/images/main-2-risk.png" alt="내 출결 리스크 — 83.3%, 결석 1일·지각 1번 더면 미달 경고" width="560">
 
-===== 10월 내 출결 (10/01 ~ 10/26) =====
-수업일 16일 · 기록 12일 (미입력 4일)
-출석 6  지각 3  조퇴 1  외출 1  결석 1
-환산 결석 2일 → 출석률 83.3%
+#### 기능별 화면 — 눌러서 펼친다
 
-⚠ 결석 1일 더 하면 장려금 기준(80%) 미달
-⚠ 지각·조퇴 1번 더 하면 장려금 기준(80%) 미달
-미입력 4일 — 결석이었다면 결석으로 입력하세요
-```
+<details><summary><b>L-01 회원가입</b> — 정상 가입 · 나이에 문자 · 번호 형식 오류 · 이미 있는 번호</summary>
 
-<!-- TODO: 발표 전에 실행 화면 캡처를 넣는다 (회원가입·로그인, 출결 입력, 내 출결 리스크, 수업일 캘린더) -->
+<img src="docs/images/l01-signup.png" alt="L-01 회원가입 — 정상 가입 · 나이에 문자 · 번호 형식 오류 · 이미 있는 번호" width="480">
 
+</details>
 
-### 4-3. 기능별 구현 현황 (10/27 오전 기준)
+<details><summary><b>L-02 로그인</b> — 등록되지 않은 번호 · 형식 오류 후 로그인</summary>
+
+<img src="docs/images/l02-login.png" alt="L-02 로그인 — 등록되지 않은 번호 · 형식 오류 후 로그인" width="480">
+
+</details>
+
+<details><summary><b>L-03 과정 설정</b> — 날짜·시각 형식 오류 후 등록</summary>
+
+<img src="docs/images/l03-course.png" alt="L-03 과정 설정 — 날짜·시각 형식 오류 후 등록" width="560">
+
+</details>
+
+<details><summary><b>L-04 수업일 캘린더</b> — 수업일 생성(주말은 휴일) · 없는 과정 번호</summary>
+
+L-03에서 등록한 2번 과정(2027-04-08 ~ 04-12)의 날짜를 **한 트랜잭션으로** 만든다.
+
+<img src="docs/images/l04-calendar.png" alt="L-04 수업일 캘린더 — 수업일 생성(주말은 휴일) · 없는 과정 번호" width="480">
+
+</details>
+
+<details><summary><b>L-05 출결 입력</b> — 공휴일 · 오늘 · 날짜 형식 · 이미 입력한 날 · 퇴실 전 · Enter로 취소</summary>
+
+프로그램이 끝나지 않고 이유를 알려 준 뒤 날짜부터 다시 묻는다. 이미 있는 기록은 덮어쓰지 않는다.
+
+<img src="docs/images/l05-attendance-exceptions.png" alt="L-05 출결 입력 — 공휴일 · 오늘 · 날짜 형식 · 이미 입력한 날 · 퇴실 전 · Enter로 취소" width="480">
+
+</details>
+
+<details><summary><b>L-08 내 출결 리스크</b> — 이번 달 기록 없음 · 이미 80% 미달</summary>
+
+기록이 없으면 계산하지 않고, 이미 기준 아래면 경고 대신 미달을 알린다.
+
+<img src="docs/images/l08-risk-cases.png" alt="L-08 내 출결 리스크 — 이번 달 기록 없음 · 이미 80% 미달" width="480">
+
+</details>
+
+<details><summary><b>L-09 반 전체 현황</b> — 출석률 순위 · 80% 미달 · 경계(80~85%) · 기록 없음 · 훈련 기간 밖 월 · 형식 오류</summary>
+
+<img src="docs/images/l09-class-status.png" alt="L-09 반 전체 현황 — 출석률 순위 · 80% 미달 · 경계(80~85%) · 기록 없음 · 훈련 기간 밖 월 · 형식 오류" width="480">
+
+</details>
+
+<details><summary><b>L-10 로그아웃</b> — 로그아웃 후 시작 메뉴</summary>
+
+<img src="docs/images/l10-logout.png" alt="L-10 로그아웃 — 로그아웃 후 시작 메뉴" width="480">
+
+</details>
+
+<details><summary><b>L-11 회원 탈퇴</b> — 탈퇴 취소 · 탈퇴 · 탈퇴한 번호로 로그인</summary>
+
+`Y`를 넣어야 탈퇴한다. 그 회원의 출결 기록도 함께 지워진다 (`ON DELETE CASCADE`).
+
+<img src="docs/images/l11-withdraw.png" alt="L-11 회원 탈퇴 — 탈퇴 취소 · 탈퇴 · 탈퇴한 번호로 로그인" width="480">
+
+</details>
+
+<details><summary><b>L-12 메뉴·종료</b> — 문자 입력 · 없는 메뉴 번호 · 프로그램 종료</summary>
+
+<img src="docs/images/l12-menu-exit.png" alt="L-12 메뉴·종료 — 문자 입력 · 없는 메뉴 번호 · 프로그램 종료" width="480">
+
+</details>
+
+### 4-3. 기능별 구현 현황 (10/27 기준)
 
 | ID | 기능 | 메뉴 | 상태 | PR |
 | :---: | --- | :---: | :---: | --- |
@@ -358,33 +466,29 @@ cp src/main/resources/db.properties.example src/main/resources/db.properties
 | L-03 | 과정 설정 | 4 | ✅ 완료 | #26, #33 |
 | L-04 | 수업일 캘린더 | 5 | ✅ 완료 | #31 |
 | L-05 | 출결 규칙 (`AttendanceRule`) | — | ✅ 완료 | #28, #30 |
-| L-05 | 출결 입력 | 2 | 🔍 리뷰 중 | #35 |
-| L-08 | 내 출결 리스크 | 1 | 🔍 리뷰 중 | #34 |
-| L-09 | 반 전체 현황 | 3 | ⬜ 미구현 | 이슈 #11 (뷰 `v_monthly_attendance`만 준비) |
-| L-10 | 로그아웃 | 7 | 🟡 일부 | — |
-| L-11 | 회원 탈퇴 | 6 | 🟡 일부 | #27 (탈퇴 로직만, 메뉴 미연결) |
-| L-12 | 프로그램 종료·메뉴 통합 | 9 | 🟡 일부 | 이슈 #15 (종료만 동작) |
+| L-05 | 출결 입력 | 2 | ✅ 완료 | #35 |
+| L-08 | 내 출결 리스크 | 1 | ✅ 완료 | #34 |
+| L-09 | 반 전체 현황 | 3 | ✅ 완료 | #__ |
+| L-10 | 로그아웃 | 7 | ✅ 완료 | #39 |
+| L-11 | 회원 탈퇴 | 6 | ✅ 완료 | #27 (탈퇴 로직), #39 (Y 확인·메뉴 연결) |
+| L-12 | 프로그램 종료·메뉴 통합 | 9 | ✅ 완료 | #39 (잘못된 입력에도 종료되지 않음) |
 
 **알려진 한계**
-- 로그아웃: 메뉴에는 `7`로 보이지만 코드는 `8`에서 처리한다. 로그인 정보도 지우지 않는다.
-- 수업일 캘린더는 주말만 빼고 생성한다. 공휴일·휴강 등록 메뉴가 없어 샘플 공휴일은 `insert.sql`에 넣어 두었다.
+- 수업일 캘린더는 주말만 빼고 만든다. 공휴일·휴강 등록 메뉴가 없어 샘플 공휴일은 `insert.sql`에 넣어 두었다.
+- 수업일을 만들면 "N일의 수업일이 생성되었습니다."의 N에 주말도 포함된다 (예: 04/08 ~ 04/12 → 5일 = 수업 3일 + 주말 2일). 요일은 `MONDAY`처럼 영어로 나온다.
+- 없는 과정 번호를 넣으면 "존재하지 않는 과정입니다."가 두 번 나온다 (생성과 조회가 각각 안내한다).
 - 과정을 여러 개 등록해도 출결 판정은 가장 먼저 등록한 과정(가장 작은 `course_id`)을 쓴다. 여러 과정 관리는 v0.1 범위 밖이다.
 - 잘못 입력한 출결을 고치거나 지우는 기능이 없다 (v0.2에서 고용24 표 가져오기로 바로잡을 계획).
 
 
 ### 4-4. 테스트
 
-[`AttendanceRuleTest`](src/test/java/latecatcher/rule/AttendanceRuleTest.java) — **37개 통과**. DB 없이 규칙만 검증한다.
+**43개 통과** — DB 없이 규칙만 검증한다.
 
-| 묶음 | 확인하는 경계값 |
-| --- | --- |
-| 상태 판정 | 정각 입실·퇴실은 출석, 1분 늦으면 지각, 지각이면서 조퇴, 입실·퇴실 기록 없음 |
-| 최소 수업 시간 | 정확히 4시간은 인정, 1분 모자라면 결석, 지각 후 3시간·4시간, 일찍 온 시간 제외, 기준값 변경 |
-| 환산 결석 | 지각 2·3·5회, 결석 1일 + 지각 3회, 기준이 2회일 때, 지각·조퇴는 2회 |
-| 출석률 | 정확히 80%, 80% 미만, 공결은 분모·분자에서 제외, 기록 0일·모두 공결이면 계산하지 않음 |
-| 미입력·기준일 | 수업일 − 기록 일수, 오늘(퇴실 없는 줄) 제외, 원본 목록은 바꾸지 않음 |
-
-PR #34가 머지되면 리스크 계산 `AttendanceRiskTest` 6개가 더해진다.
+| 테스트 | 개수 | 확인하는 경계값 |
+| --- | :---: | --- |
+| [`AttendanceRuleTest`](src/test/java/latecatcher/rule/AttendanceRuleTest.java) | 37 | 정각 입실·퇴실은 출석, 1분 늦으면 지각, 지각이면서 조퇴, 최소 수업 시간 정확히 4시간·1분 모자람, 지각 2·3·5회 환산, 정확히 80%, 공결 제외, 기록 0일, 오늘 줄 제외 |
+| [`AttendanceRiskTest`](src/test/java/latecatcher/rule/AttendanceRiskTest.java) | 6 | 결석 며칠·지각 몇 번 더면 80% 아래인지 |
 
 <br>
 
@@ -395,9 +499,9 @@ PR #34가 머지되면 리스크 계산 `AttendanceRiskTest` 6개가 더해진�
 
 ### 5-1. 기획 의도와의 부합 정도
 <!-- 처음 의도한 기능과 흐름이 결과물에 얼마나 반영되었는지 -->
-- 핵심인 **출결 규칙**(판정·환산·출석률)을 순수 Java로 옮기고 JUnit 37개로 경계값을 검증했다.
-- 출결 입력(L-05)과 내 출결 리스크(L-08)가 이어지면 "몇 번 더 늦으면 위험한가"를 보여 주는 처음 의도한 흐름이 완성된다.
-- 반 전체 현황(L-09)과 고용24 표 가져오기(v0.2)는 하지 못했다.
+- 핵심인 **출결 규칙**(판정·환산·출석률)을 순수 Java로 옮기고 JUnit 43개로 경계값을 검증했다.
+- 입실·퇴실 시각만 넣으면 규칙대로 판정해 저장하고(L-05), "결석 며칠·지각 몇 번 더면 80% 미달"을 바로 알려 주는(L-08) 처음 의도한 흐름이 완성됐다.
+- 고용24 표 가져오기(v0.2)는 하지 못했다.
 - (팀 의견 추가)
 
 
@@ -410,14 +514,14 @@ PR #34가 머지되면 리스크 계산 `AttendanceRiskTest` 6개가 더해진�
 | L-03 | 과정 설정 | ✅ | |
 | L-04 | 수업일 캘린더 | ✅ | 휴일 등록 메뉴 없음 |
 | L-05 | 출결 규칙 | ✅ | |
-| L-05 | 출결 입력 | 🔍 | PR #35 리뷰 중 |
-| L-08 | 내 출결 리스크 | 🔍 | PR #34 리뷰 중 |
-| L-09 | 반 전체 현황 | ⬜ | (미구현 사유) |
-| L-10 | 로그아웃 | 🟡 | 메뉴 번호 불일치 |
-| L-11 | 회원 탈퇴 | 🟡 | 메뉴 미연결 |
-| L-12 | 프로그램 종료·메뉴 통합 | 🟡 | 종료만 동작 |
+| L-05 | 출결 입력 | ✅ | |
+| L-08 | 내 출결 리스크 | ✅ | |
+| L-09 | 반 전체 현황 | ✅ | |
+| L-10 | 로그아웃 | ✅ | |
+| L-11 | 회원 탈퇴 | ✅ | |
+| L-12 | 프로그램 종료·메뉴 통합 | ✅ | |
 
-**전체 달성도: 5 / 11 (45%)** — 리뷰 중인 PR 2개가 머지되면 7 / 11 (64%)
+**전체 달성도: 11 / 11 (100%)** — v0.1 MVP 기준
 
 ### 5-3. 완성도 및 자체 평가
 
@@ -442,8 +546,8 @@ PR #34가 머지되면 리스크 계산 `AttendanceRiskTest` 6개가 더해진�
 
 ### 5-5. 개선할 점
 
-- `build.gradle`의 `mainClass`를 `latecatcher.run.Application`으로 고쳐 `./gradlew run`으로 실행할 수 있게 한다.
-- 반 전체 현황(L-09), 로그아웃·회원 탈퇴 메뉴 연결, 공휴일·휴강 등록을 마무리한다.
+- 공휴일·휴강 등록을 마무리하고, 수업일 생성 개수·중복 안내 메시지를 다듬는다.
+- 잘못 입력한 출결의 수정·삭제
 - v0.2: 고용24 출결 표 가져오기(L-06, 트랜잭션), 관리자 권한(L-16), 공휴일 API(L-13), 디스코드 알림(L-14)
 - (팀 의견 추가)
 
