@@ -120,6 +120,7 @@ public class Application {
                 case 3:
                     // TODO: 반 전체 현황 조회 로직 구현
                     System.out.println("\n[반 전체 현황]");
+                    System.out.println("준비 중인 기능입니다.");
                     break;
 
                 // 4. 과정 설정
@@ -129,12 +130,10 @@ public class Application {
 
                 // 5. 수업일 캘린더
                 case 5:
-                    // TODO: 수업일 캘린더 조회 로직 구현
                     ClassDayController classDayController = new ClassDayController();
 
                     System.out.println("\n[수업일 캘린더]");
-                    System.out.print("과정 번호 입력: ");
-                    int courseId = Integer.parseInt(scanner.nextLine());
+                    int courseId = readInt(scanner, "과정 번호 입력: "); // 숫자가 아니면 다시 묻는다
 
                     classDayController.generateClassDays(courseId);  // 수업일 없으면 생성
                     classDayController.showCalendar(courseId);       // 캘린더 출력
@@ -142,14 +141,15 @@ public class Application {
 
                 // 6. 회원 탈퇴
                 case 6:
-                    // TODO: 회원 탈퇴 로직 구현
-                    System.out.println("\n[회원 탈퇴 처리]");
+                    if (withdraw(scanner, controller)) {
+                        return false; // 탈퇴하면 로그인 정보가 없으므로 시작 메뉴로 복귀
+                    }
                     break;
 
-                // 8. 로그아웃 (상위 메뉴나 로그인 화면으로 복귀)
-                case 8:
-                    System.out.println("로그아웃 되었습니다.");
-                    return false; // false를 반환하여 프로그램은 계속 돌고 로그인 루프로 복귀
+                // 7. 로그아웃 (로그인 정보를 지우고 시작 메뉴로 복귀)
+                case 7:
+                    controller.logout();
+                    return false; // false를 반환하여 프로그램은 계속 돌고 시작 메뉴로 복귀
 
                 // 9. 프로그램 종료
                 case 9:
@@ -173,7 +173,7 @@ public class Application {
         System.out.println("4. 과정 설정");
         System.out.println("5. 수업일 캘린더");
         System.out.println("6. 회원 탈퇴");
-        System.out.println("7. 로그 아웃");
+        System.out.println("7. 로그아웃");
         System.out.println("9. 프로그램 종료");
     }
 
@@ -204,14 +204,9 @@ public class Application {
             partialPerAbsence = readInt(scanner, "지각·조퇴·외출 합산 결석 기준 횟수 (예: 3): ");
         }
 
-        System.out.print("훈련장려금 지급 기준 출석률 (%) (예: 80): ");
-        int allowanceThreshold = scanner.nextInt();
-
-        System.out.print("과정 수료 기준 출석률 (%) (예: 80): ");
-        int completionThreshold = scanner.nextInt();
-
-        // nextInt() 후 남아있는 Enter 버퍼 제거
-        scanner.nextLine();
+        // 숫자가 아니면 readInt가 다시 묻는다. 0~100 범위는 MemberController.addCourse가 확인한다
+        int allowanceThreshold = readInt(scanner, "훈련장려금 지급 기준 출석률 (%) (예: 80): ");
+        int completionThreshold = readInt(scanner, "과정 수료 기준 출석률 (%) (예: 80): ");
 
         // 5. Course 객체 생성 및 Controller 등록
         Course course = new Course(
@@ -228,6 +223,22 @@ public class Application {
         );
 
         controller.addCourse(course);
+    }
+
+    // L-11 회원 탈퇴. Y를 입력해야 탈퇴하고, 그 밖의 입력은 취소한다
+    // 출결 기록은 attendance_tbl의 FK ON DELETE CASCADE로 회원과 함께 지워진다
+    private static boolean withdraw(Scanner scanner, MemberController controller) {
+        System.out.println();
+        System.out.println("===== 회원 탈퇴 =====");
+        System.out.println("탈퇴하면 회원 정보와 모든 출결 기록이 삭제됩니다.");
+        System.out.print("정말 탈퇴하시겠습니까? (Y/N): ");
+        String answer = scanner.nextLine().trim();
+
+        if (!answer.equalsIgnoreCase("Y")) {
+            System.out.println("탈퇴를 취소했습니다.");
+            return false;
+        }
+        return controller.deleteMyAccount();
     }
 
     private static int readInt(Scanner scanner, String message) {
