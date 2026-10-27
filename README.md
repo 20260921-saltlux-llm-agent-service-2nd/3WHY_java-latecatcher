@@ -358,10 +358,10 @@ DB 처리에 실패하면 프로그램이 멈추지 않고 **무엇이 실패했
 
 | 화면에 나온 메시지 | 원인 | 해결 |
 | --- | --- | --- |
-| `db.properties 파일을 읽지 못했습니다.` | `db.properties`를 만들지 않았다 | ④ |
+| `db.properties 파일을 읽지 못했습니다.` | `db.properties`를 만들지 않았다 | ④ 접속 정보 |
 | `회원 SQL 파일을 읽지 못했습니다.`<br>원인: `src/main/java/latecatcher/mapper/member-query.xml ...` | 작업 디렉터리가 프로젝트 폴더가 아니다 | **Run → Edit Configurations → Working directory**를 프로젝트 폴더로 |
 | 원인: `Access denied for user '...'@'localhost' (using password: YES)` | 사용자 이름·비밀번호가 틀렸다 | `db.properties`의 `user`, `password` |
-| 원인: `Unknown database 'latedb'` | `schema.sql`을 실행하지 않았다 | ③ |
+| 원인: `Unknown database 'latedb'` | `schema.sql`을 실행하지 않았다 | ③ DB 만들기 |
 | 원인: `Access denied for user '...'@'%' to database 'latedb'` | 그 사용자에게 `latedb` 권한이 없다 | 그 사용자에게 `latedb` 권한을 준다 (⓪) |
 | 원인: `Communications link failure` | MySQL 서버가 꺼져 있다 | MySQL 서버를 켠다 (Windows는 서비스 **MySQL80**) |
 | ③ Test Connection이 실패한다 | 사용자 이름·비밀번호, 서버 꺼짐, 드라이버 없음 | 입력값 확인, 서버 켜기, **Download missing driver files** |
